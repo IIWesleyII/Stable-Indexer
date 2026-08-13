@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from app.api.health import router as health_router
 from app.api.indexer import router as indexer_router
 from app.api.transfers import router as transfers_router
+from app.api.metrics import router as metrics_router
+from app.api.addresses import router as addresses_router
 from app.database.base import Base
 from app.database.session import engine
 import app.database.models  # noqa: F401
@@ -30,3 +32,5 @@ app = FastAPI(
 app.include_router(health_router)
 app.include_router(indexer_router)
 app.include_router(transfers_router)
+app.include_router(metrics_router)
+app.include_router(addresses_router)

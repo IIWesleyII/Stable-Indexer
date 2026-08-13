@@ -1,0 +1,55 @@
+startup:
+
+cd stable-indexer
+
+source .venv\Scripts\Activate
+
+docker compose up -d
+
+fastapi dev app/main.py
+
+python -m app.indexer.worker
+
+
+
+
+stable-indexer/
+│
+├── app/
+│   ├── api/
+│   │   ├── transfers.py
+│   │   ├── metrics.py
+│   │   ├── addresses.py
+│   │   └── watchlists.py
+│   │
+│   ├── chains/
+│   │   ├── base/
+│   │   │   └── indexer.py
+│   │   ├── ethereum/
+│   │   │   └── indexer.py
+│   │   └── solana/
+│   │       └── indexer.py
+│   │
+│   ├── indexer/
+│   │   ├── service.py
+│   │   ├── normalizer.py
+│   │   └── checkpoint.py
+│   │
+│   ├── stablecoins/
+│   │   ├── registry.py
+│   │   └── models.py
+│   │
+│   ├── database/
+│   │   ├── models.py
+│   │   ├── session.py
+│   │   └── migrations/
+│   │
+│   ├── services/
+│   │   ├── metrics.py
+│   │   └── addresses.py
+│   │
+│   └── main.py
+│
+├── tests/
+├── docker-compose.yml
+└── README.md

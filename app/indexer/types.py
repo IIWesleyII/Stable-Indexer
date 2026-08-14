@@ -17,3 +17,4 @@ class IndexedTransfer:
     to_address: str
     amount_raw: Decimal
     amount: Decimal
+    event_type: str

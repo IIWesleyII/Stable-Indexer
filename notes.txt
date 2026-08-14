@@ -6,13 +6,13 @@ source .venv\Scripts\Activate
 
 docker compose up -d
 
-fastapi dev app/main.py
+fastapi dev
 
 python -m app.indexer.worker
 
+npm run dev
 
-
-
+OLD
 stable-indexer/
 │
 ├── app/
@@ -53,3 +53,47 @@ stable-indexer/
 ├── tests/
 ├── docker-compose.yml
 └── README.md
+
+FRONT
+Stable-Indexer/
+├── app/                     # FastAPI backend
+│
+├── frontend/                # React frontend
+│   ├── src/
+│   │   ├── api/
+│   │   │   ├── client.ts
+│   │   │   ├── metrics.ts
+│   │   │   ├── addresses.ts
+│   │   │   └── transfers.ts
+│   │   │
+│   │   ├── components/
+│   │   │   ├── MetricCard.tsx
+│   │   │   ├── VolumeChart.tsx
+│   │   │   ├── TopAddressesTable.tsx
+│   │   │   ├── TransferTable.tsx
+│   │   │   ├── AddressSearch.tsx
+│   │   │   └── Header.tsx
+│   │   │
+│   │   ├── pages/
+│   │   │   ├── DashboardPage.tsx
+│   │   │   ├── AddressPage.tsx
+│   │   │   └── TransfersPage.tsx
+│   │   │
+│   │   ├── hooks/
+│   │   │   ├── useSummaryMetrics.ts
+│   │   │   ├── useDailyVolume.ts
+│   │   │   ├── useTopAddresses.ts
+│   │   │   └── useAddress.ts
+│   │   │
+│   │   ├── types/
+│   │   │   ├── metrics.ts
+│   │   │   ├── addresses.ts
+│   │   │   └── transfers.ts
+│   │   │
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   │
+│   ├── package.json
+│   └── vite.config.ts
+│
+└── docker-compose.yml

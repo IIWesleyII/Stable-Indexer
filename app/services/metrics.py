@@ -19,7 +19,9 @@ async def get_summary_metrics(
     chain: str | None = None,
     stablecoin: str | None = None,
 ) -> MetricsSummary:
-    conditions = []
+    conditions = [
+        StablecoinTransfer.event_type == "transfer"
+    ]
 
     if chain:
         conditions.append(
@@ -111,7 +113,9 @@ async def get_top_addresses(
     stablecoin: str | None = None,
     sort_by: str = "transfer_count",
 ) -> list[TopAddress]:
-    conditions = []
+    conditions = [
+        StablecoinTransfer.event_type == "transfer"
+    ]
 
     if chain:
         conditions.append(
@@ -221,7 +225,9 @@ async def get_daily_volume(
     chain: str | None = None,
     stablecoin: str | None = None,
 ) -> list[DailyVolume]:
-    conditions = []
+    conditions = [
+        StablecoinTransfer.event_type == "transfer"
+    ]
 
     if chain:
         conditions.append(

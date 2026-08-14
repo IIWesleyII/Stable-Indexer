@@ -32,10 +32,11 @@ async def get_address_summary(
     )
 
     conditions = [
+        StablecoinTransfer.event_type == "transfer",
         or_(
             is_sender,
             is_receiver,
-        )
+        ),
     ]
 
     if chain:
@@ -162,10 +163,11 @@ async def get_address_partners(
     )
 
     conditions = [
+        StablecoinTransfer.event_type == "transfer",
         or_(
             is_sender,
             is_receiver,
-        )
+        ),
     ]
 
     if chain:

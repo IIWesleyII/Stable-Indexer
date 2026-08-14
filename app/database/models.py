@@ -41,7 +41,7 @@ class StablecoinTransfer(Base):
     to_address: Mapped[str] = mapped_column(String(64), index=True)
     amount_raw: Mapped[Decimal] = mapped_column(Numeric(78, 0))
     amount: Mapped[Decimal] = mapped_column(Numeric(78, 18), index=True)
-
+    event_type: Mapped[str] = mapped_column(String(16),nullable=False,)
 
 class IndexerCheckpoint(Base):
     __tablename__ = "indexer_checkpoints"

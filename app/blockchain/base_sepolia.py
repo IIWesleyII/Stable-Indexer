@@ -13,6 +13,19 @@ from app.blockchain.tokens import BASE_SEPOLIA_USDC
 from app.config import settings
 from app.indexer.types import IndexedTransfer
 
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+# Helpers
+def get_event_type(
+    from_address: str,
+    to_address: str,
+) -> str:
+    if from_address.lower() == ZERO_ADDRESS:
+        return "mint"
+
+    if to_address.lower() == ZERO_ADDRESS:
+        return "burn"
+
+    return "transfer"
 
 def to_hex(value: bytes) -> str:
     hex_value = value.hex()
@@ -114,6 +127,10 @@ class BaseSepoliaIndexer:
                     to_address=log["args"]["to"],
                     amount_raw=amount_raw,
                     amount=amount_raw / divisor,
+                    event_type=get_event_type(
+                        log["args"]["from"],
+                        log["args"]["to"],
+                    ),
                 )
             )
 

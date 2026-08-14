@@ -11,7 +11,7 @@ from app.schemas.transfers import SyncResult
 class CheckpointNotInitializedError(Exception):
     pass
 
-
+DB_INSERT_BATCH_SIZE = 1000
 class IndexerService:
     batch_size = 500
 
@@ -53,25 +53,48 @@ class IndexerService:
                 "to_address": transfer.to_address,
                 "amount_raw": transfer.amount_raw,
                 "amount": transfer.amount,
+                "event_type": transfer.event_type,
             }
             for transfer in transfers
         ]
 
-        statement = insert(StablecoinTransfer).values(rows)
-        statement = statement.on_conflict_do_nothing(
-            constraint="uq_transfer_chain_tx_log"
-        )
-        statement = statement.returning(StablecoinTransfer.id)
+        inserted = 0
 
-        result = await self.session.execute(statement)
-        inserted_ids = result.scalars().all()
-        await self.session.commit()
+        try:
+            for start in range(0, len(rows), DB_INSERT_BATCH_SIZE):
+                batch = rows[
+                    start:start + DB_INSERT_BATCH_SIZE
+                ]
+
+                statement = insert(
+                    StablecoinTransfer
+                ).values(batch)
+
+                statement = statement.on_conflict_do_nothing(
+                    constraint="uq_transfer_chain_tx_log"
+                )
+
+                statement = statement.returning(
+                    StablecoinTransfer.id
+                )
+
+                result = await self.session.execute(statement)
+
+                inserted += len(
+                    result.scalars().all()
+                )
+
+            await self.session.commit()
+
+        except Exception:
+            await self.session.rollback()
+            raise
 
         return ScanResult(
             from_block=from_block,
             to_block=to_block,
             discovered=len(transfers),
-            inserted=len(inserted_ids),
+            inserted=inserted,
         )
 
     async def sync(

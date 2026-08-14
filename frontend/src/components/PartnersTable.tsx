@@ -1,44 +1,56 @@
-import type {TopAddress,TopAddressSort} from "../types/metrics";
 import { Link } from "react-router";
 
-interface TopAddressesTableProps {
-  addresses: TopAddress[];
-  sortBy: TopAddressSort;
-  onSortChange: (sortBy: TopAddressSort) => void;
+import type {
+  AddressPartner,
+  PartnerSort,
+} from "../types/addresses";
+
+
+interface PartnersTableProps {
+  partners: AddressPartner[];
+  sortBy: PartnerSort;
+  onSortChange: (sortBy: PartnerSort) => void;
 }
+
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 8)}...${address.slice(-6)}`;
 }
 
+
 function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
+
 function formatVolume(value: string): string {
   return new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 6,
   }).format(Number(value));
 }
 
-export function TopAddressesTable({
-  addresses,
+
+export function PartnersTable({
+  partners,
   sortBy,
   onSortChange,
-}: TopAddressesTableProps) {
+}: PartnersTableProps) {
   return (
     <section className="dashboard-section">
       <div className="section-header">
         <div>
-          <h2>Top Addresses</h2>
-          <p>Most active stablecoin addresses.</p>
+          <h2>Top Partners</h2>
+
+          <p>
+            Addresses this wallet interacts with most.
+          </p>
         </div>
 
         <select
           value={sortBy}
           onChange={(event) => {
             onSortChange(
-              event.target.value as TopAddressSort,
+              event.target.value as PartnerSort,
             );
           }}
         >
@@ -56,7 +68,7 @@ export function TopAddressesTable({
         <table className="data-table">
           <thead>
             <tr>
-              <th>Address</th>
+              <th>Partner</th>
               <th>Transfers</th>
               <th>Sent</th>
               <th>Received</th>
@@ -65,38 +77,38 @@ export function TopAddressesTable({
           </thead>
 
           <tbody>
-            {addresses.map((address) => (
-              <tr key={address.address}>
+            {partners.map((partner) => (
+              <tr key={partner.address}>
                 <td className="address-cell">
                   <Link
                     className="address-link"
-                    to={`/addresses/${address.address}`}
+                    to={`/addresses/${partner.address}`}
                   >
-                    {formatAddress(address.address)}
+                    {formatAddress(partner.address)}
                   </Link>
                 </td>
 
                 <td>
                   {formatNumber(
-                    address.transfer_count,
+                    partner.transfer_count,
                   )}
                 </td>
 
                 <td>
                   {formatVolume(
-                    address.sent_volume,
+                    partner.sent_volume,
                   )}
                 </td>
 
                 <td>
                   {formatVolume(
-                    address.received_volume,
+                    partner.received_volume,
                   )}
                 </td>
 
                 <td>
                   {formatVolume(
-                    address.activity_volume,
+                    partner.activity_volume,
                   )}
                 </td>
               </tr>

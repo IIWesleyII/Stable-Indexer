@@ -33,6 +33,10 @@ input {
 }
 
 .dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
   margin-bottom: 32px;
 }
 
@@ -213,5 +217,55 @@ input {
 
   .chart-toggle button {
     flex: 1;
+  }
+}
+
+.indexer-status {
+  min-width: 230px;
+  padding: 12px 14px;
+  border: 1px solid #e1e6e2;
+  border-radius: 10px;
+  background: white;
+}
+
+.indexer-status-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.indexer-status-heading span:last-child {
+  margin-left: auto;
+  color: #66706a;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2f8f5b;
+}
+
+.indexer-status-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 8px;
+  color: #88918b;
+  font-size: 12px;
+}
+
+.indexer-status.error .status-dot {
+  background: #b54747;
+}
+
+@media (max-width: 600px) {
+  .dashboard-header {
+    flex-direction: column;
+  }
+
+  .indexer-status {
+    width: 100%;
   }
 }

@@ -52,8 +52,12 @@ class BaseSepoliaIndexer:
     async def get_latest_block(self) -> int:
         return await self.w3.eth.block_number
 
-    async def get_block_hash(self, block_number: int) -> str:
+    async def get_block_hash(
+        self,
+        block_number: int,
+    ) -> str:
         block = await self.w3.eth.get_block(block_number)
+
         return to_hex(block["hash"])
     
     async def get_block_with_retry(

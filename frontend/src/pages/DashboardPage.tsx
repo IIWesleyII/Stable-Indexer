@@ -1,16 +1,12 @@
 import { useState } from "react";
-
+import { IndexerStatus } from "../components/IndexerStatus";
 import { MetricCard } from "../components/MetricCard";
-import { TopAddressesTable } from
-  "../components/TopAddressesTable";
+import { TopAddressesTable } from "../components/TopAddressesTable";
 import { VolumeChart } from "../components/VolumeChart";
 import { useDailyVolume } from "../hooks/useDailyVolume";
-import { useSummaryMetrics } from
-  "../hooks/useSummaryMetrics";
-import { useTopAddresses } from
-  "../hooks/useTopAddresses";
-import type { TopAddressSort } from
-  "../types/metrics";
+import { useSummaryMetrics } from "../hooks/useSummaryMetrics";
+import { useTopAddresses } from "../hooks/useTopAddresses";
+import type { TopAddressSort } from "../types/metrics";
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
@@ -60,6 +56,8 @@ export function DashboardPage() {
             networks.
           </p>
         </div>
+
+        <IndexerStatus />
       </header>
 
       <section className="metrics-grid">

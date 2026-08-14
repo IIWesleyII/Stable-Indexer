@@ -6,7 +6,7 @@ from app.database.models import IndexerCheckpoint
 from app.database.models import StablecoinTransfer
 from app.schemas.transfers import ScanResult
 from app.schemas.transfers import SyncResult
-
+from app.schemas.indexer import IndexerStatus
 
 class CheckpointNotInitializedError(Exception):
     pass
@@ -179,3 +179,73 @@ class IndexerService:
             checkpoint.last_block_hash = block_hash
 
         await self.session.commit()
+
+    async def reposition_checkpoint(
+        self,
+        blocks_behind: int,
+    ) -> dict:
+        latest_block = await self.indexer.get_latest_block()
+
+        next_block = latest_block - blocks_behind
+
+        if next_block <= 0:
+            raise ValueError(
+                "blocks_behind is larger than the chain history"
+            )
+
+        checkpoint_block = next_block - 1
+
+        block_hash = await self.indexer.get_block_hash(
+            checkpoint_block
+        )
+
+        checkpoint = await self.get_checkpoint()
+
+        if checkpoint is None:
+            checkpoint = IndexerCheckpoint(
+                chain="base-sepolia",
+                last_processed_block=checkpoint_block,
+                last_block_hash=block_hash,
+            )
+
+            self.session.add(checkpoint)
+        else:
+            checkpoint.last_processed_block = checkpoint_block
+            checkpoint.last_block_hash = block_hash
+
+        await self.session.commit()
+
+        return {
+            "chain": "base-sepolia",
+            "latest_block": latest_block,
+            "last_processed_block": checkpoint_block,
+            "next_block": next_block,
+            "blocks_behind": blocks_behind,
+        }
+    async def get_status(self) -> IndexerStatus:
+        latest_block = await self.indexer.get_latest_block()
+        checkpoint = await self.get_checkpoint()
+
+        if checkpoint is None:
+            return IndexerStatus(
+                chain="base-sepolia",
+                latest_block=latest_block,
+                last_processed_block=None,
+                blocks_behind=None,
+                caught_up=False,
+                updated_at=None,
+            )
+
+        blocks_behind = max(
+            latest_block - checkpoint.last_processed_block,
+            0,
+        )
+
+        return IndexerStatus(
+            chain="base-sepolia",
+            latest_block=latest_block,
+            last_processed_block=checkpoint.last_processed_block,
+            blocks_behind=blocks_behind,
+            caught_up=blocks_behind == 0,
+            updated_at=checkpoint.updated_at,
+        )

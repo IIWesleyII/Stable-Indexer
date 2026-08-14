@@ -13,7 +13,16 @@ from app.schemas.transfers import ScanRequest
 from app.schemas.transfers import ScanResult
 from app.schemas.transfers import SyncRequest
 from app.schemas.transfers import SyncResult
+from app.schemas.indexer import IndexerStatus
 
+from pydantic import BaseModel
+from pydantic import Field
+class RepositionCheckpointRequest(BaseModel):
+    blocks_behind: int = Field(
+        default=50000,
+        ge=1000,
+        le=500000,
+    )
 
 router = APIRouter(prefix="/indexer", tags=["indexer"])
 
@@ -73,3 +82,32 @@ async def sync_blocks(
             status_code=409,
             detail=str(exc),
         ) from exc
+
+@router.post("/checkpoint/reposition")
+async def reposition_checkpoint(
+    request: RepositionCheckpointRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    service = IndexerService(session)
+
+    try:
+        return await service.reposition_checkpoint(
+            blocks_behind=request.blocks_behind,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+
+@router.get(
+    "/status",
+    response_model=IndexerStatus,
+)
+async def indexer_status(
+    session: AsyncSession = Depends(get_session),
+) -> IndexerStatus:
+    service = IndexerService(session)
+
+    return await service.get_status()

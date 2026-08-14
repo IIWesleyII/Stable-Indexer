@@ -1,6 +1,6 @@
 import type {TopAddress,TopAddressSort} from "../types/metrics";
 import { Link } from "react-router";
-
+import { AddressSearch } from "./AddressSearch";
 interface TopAddressesTableProps {
   addresses: TopAddress[];
   sortBy: TopAddressSort;
@@ -31,25 +31,39 @@ export function TopAddressesTable({
       <div className="section-header">
         <div>
           <h2>Top Addresses</h2>
-          <p>Most active stablecoin addresses.</p>
+
+          <p>
+            Explore the most active stablecoin addresses.
+          </p>
         </div>
 
-        <select
-          value={sortBy}
-          onChange={(event) => {
-            onSortChange(
-              event.target.value as TopAddressSort,
-            );
-          }}
-        >
-          <option value="volume">
-            Highest Volume
-          </option>
+        <div className="table-actions">
+          <Link
+            className="watchlist-table-link"
+            to="/watchlist"
+          >
+            Watchlist
+          </Link>
 
-          <option value="transfer_count">
-            Most Transfers
-          </option>
-        </select>
+          <AddressSearch />
+
+          <select
+            value={sortBy}
+            onChange={(event) => {
+              onSortChange(
+                event.target.value as TopAddressSort,
+              );
+            }}
+          >
+            <option value="volume">
+              Highest Volume
+            </option>
+
+            <option value="transfer_count">
+              Most Transfers
+            </option>
+          </select>
+        </div>
       </div>
 
       <div className="table-wrapper">

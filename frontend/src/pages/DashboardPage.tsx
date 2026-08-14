@@ -47,18 +47,18 @@ export function DashboardPage() {
 
   return (
     <main className="dashboard">
-      <header className="dashboard-header">
-        <div>
-          <h1>Stable Indexer</h1>
+    <header className="dashboard-header">
+      <div>
+        <h1>Stable Indexer</h1>
 
-          <p>
-            Stablecoin intelligence across blockchain
-            networks.
-          </p>
-        </div>
+        <p>
+          Stablecoin intelligence across blockchain
+          networks.
+        </p>
+      </div>
 
-        <IndexerStatus />
-      </header>
+      <IndexerStatus />
+    </header>
 
       <section className="metrics-grid">
         <MetricCard

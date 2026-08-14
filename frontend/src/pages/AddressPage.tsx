@@ -6,8 +6,8 @@ import { PartnersTable } from "../components/PartnersTable";
 import { useAddress } from "../hooks/useAddress";
 import { useAddressPartners } from "../hooks/useAddressPartners";
 import type { PartnerSort } from "../types/addresses";
-
-
+import { AddressSearch } from "../components/AddressSearch";
+import { AddToWatchlistButton } from "../components/AddToWatchlistButton";
 function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
@@ -73,29 +73,37 @@ export function AddressPage() {
 
   return (
     <main className="dashboard">
-      <Link
-        className="back-link"
-        to="/"
-      >
-        ← Dashboard
-      </Link>
+        <div className="address-page-nav">
+        <Link
+            className="back-link"
+            to="/"
+        >
+            ← Dashboard
+        </Link>
 
-      <header className="address-header">
+        <AddressSearch />
+        </div>
+
+        <header className="address-header">
         <div>
-          <span className="page-label">
+            <span className="page-label">
             Address
-          </span>
+            </span>
 
-          <h1 className="full-address">
+            <h1 className="full-address">
             {data.address}
-          </h1>
+            </h1>
 
-          <p>
+            <p>
             Indexed stablecoin activity for this
             address.
-          </p>
+            </p>
         </div>
-      </header>
+
+        <AddToWatchlistButton
+            address={data.address}
+        />
+        </header>
 
       <section className="metrics-grid">
         <MetricCard

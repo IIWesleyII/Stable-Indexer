@@ -21,3 +21,18 @@ export interface AddWatchlistAddressRequest {
   label?: string;
   chain: string;
 }
+
+export interface WatchlistAddressAnalytics {
+  id: number;
+  address: string;
+  label: string | null;
+  chain: string;
+  transfer_count: number;
+  sent_count: number;
+  received_count: number;
+  sent_volume: string;
+  received_volume: string;
+  net_flow: string;
+  unique_partners: number;
+  last_activity: string | null;
+}

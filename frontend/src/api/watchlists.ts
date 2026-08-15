@@ -2,6 +2,7 @@ import type {
   AddWatchlistAddressRequest,
   Watchlist,
   WatchlistAddress,
+  WatchlistAddressAnalytics,
   WatchlistDetail,
 } from "../types/watchlists";
 
@@ -26,6 +27,23 @@ export async function getWatchlist(
 
   if (!response.ok) {
     throw new Error("Failed to load watchlist");
+  }
+
+  return response.json();
+}
+
+
+export async function getWatchlistAnalytics(
+  watchlistId: number,
+): Promise<WatchlistAddressAnalytics[]> {
+  const response = await fetch(
+    `/api/watchlists/${watchlistId}/analytics`,
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Failed to load watchlist analytics",
+    );
   }
 
   return response.json();

@@ -21,4 +21,16 @@ export interface AddressPartner {
   activity_volume: string;
 }
 
+export interface AddressActivity {
+  transaction_hash: string;
+  log_index: number;
+  block_number: number;
+  timestamp: string;
+  direction: "sent" | "received" | "self";
+  counterparty: string;
+  amount: string;
+  token_symbol: string;
+  chain: string;
+}
+
 export type PartnerSort = "transfer_count" | "volume";

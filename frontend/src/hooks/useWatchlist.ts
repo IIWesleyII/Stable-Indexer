@@ -1,11 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 import {
   getWatchlist,
+  getWatchlistAnalytics,
   getWatchlists,
 } from "../api/watchlists";
 import type {
   Watchlist,
+  WatchlistAddressAnalytics,
   WatchlistDetail,
 } from "../types/watchlists";
 
@@ -20,7 +26,11 @@ export function useWatchlist() {
   const [watchlist, setWatchlist] =
     useState<WatchlistDetail | null>(null);
 
-  const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] =
+    useState<WatchlistAddressAnalytics[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
 
   const [error, setError] =
     useState<string | null>(null);
@@ -32,10 +42,12 @@ export function useWatchlist() {
         setError(null);
 
         const lists = await getWatchlists();
+
         setWatchlists(lists);
 
         if (lists.length === 0) {
           setWatchlist(null);
+          setAnalytics([]);
           return;
         }
 
@@ -46,9 +58,16 @@ export function useWatchlist() {
 
         setSelectedId(id);
 
-        const detail = await getWatchlist(id);
+        const [
+          detail,
+          analyticsResult,
+        ] = await Promise.all([
+          getWatchlist(id),
+          getWatchlistAnalytics(id),
+        ]);
 
         setWatchlist(detail);
+        setAnalytics(analyticsResult);
       } catch (loadError) {
         if (loadError instanceof Error) {
           setError(loadError.message);
@@ -71,6 +90,7 @@ export function useWatchlist() {
   return {
     watchlists,
     watchlist,
+    analytics,
     selectedId,
     loading,
     error,

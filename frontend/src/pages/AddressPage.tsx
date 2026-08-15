@@ -8,6 +8,9 @@ import { useAddressPartners } from "../hooks/useAddressPartners";
 import type { PartnerSort } from "../types/addresses";
 import { AddressSearch } from "../components/AddressSearch";
 import { AddToWatchlistButton } from "../components/AddToWatchlistButton";
+import { RecentActivityTable } from "../components/RecentActivityTable";
+import { useAddressActivity } from "../hooks/useAddressActivity";
+
 function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
@@ -45,6 +48,8 @@ export function AddressPage() {
     address,
     partnerSort,
   );
+
+  const activity = useAddressActivity(address);
 
   if (loading) {
     return (
@@ -203,6 +208,18 @@ export function AddressPage() {
             onSortChange={setPartnerSort}
           />
         )}
+
+          {activity.loading && (
+            <p>Loading recent activity...</p>
+          )}
+
+          {activity.error && (
+            <p>{activity.error}</p>
+          )}
+
+          {!activity.loading && !activity.error && (
+            <RecentActivityTable activity={activity.data} />
+          )}
     </main>
   );
 }

@@ -1,4 +1,4 @@
-import type {AddressPartner, AddressSummary, PartnerSort} from "../types/addresses";
+import type {AddressPartner, AddressSummary, PartnerSort, AddressActivity} from "../types/addresses";
 
 export async function getAddressSummary(
   address: string,
@@ -38,6 +38,25 @@ export async function getAddressPartners(
 
   if (!response.ok) {
     throw new Error("Failed to load address partners");
+  }
+
+  return response.json();
+}
+
+export async function getAddressActivity(
+  address: string,
+  limit = 20,
+): Promise<AddressActivity[]> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+  });
+
+  const response = await fetch(
+    `/api/addresses/${encodeURIComponent(address)}/activity?${params}`,
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to load address activity");
   }
 
   return response.json();

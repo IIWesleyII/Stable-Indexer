@@ -10,6 +10,8 @@ from app.api.metrics import router as metrics_router
 from app.api.addresses import router as addresses_router
 from app.database.base import Base
 from app.database.session import engine
+from app.api.watchlists import router as watchlists_router
+
 import app.database.models  # noqa: F401
 
 
@@ -34,3 +36,4 @@ app.include_router(indexer_router)
 app.include_router(transfers_router)
 app.include_router(metrics_router)
 app.include_router(addresses_router)
+app.include_router(watchlists_router)

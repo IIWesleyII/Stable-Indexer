@@ -11,7 +11,21 @@ fastapi dev
 python -m app.indexer.worker
 
 npm run dev
+1. Base Sepolia pipeline                  
+2. Core analytics                        
+3. Address exploration                   
+4. Basic watchlists                      
 
+5. Base mainnet                          ←
+6. Ethereum mainnet
+7. Cross-chain normalized analytics
+8. Chain filters / comparison UI
+9. Multiple stablecoins
+10. Solana
+11. Supply / mint / burn analytics
+12. Historical backfill improvements
+13. Production deployment / AWS
+14. Return to advanced watchlists
 OLD
 stable-indexer/
 │

@@ -1,7 +1,8 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 from pydantic import Field
 from pydantic import field_serializer
 
@@ -44,4 +45,19 @@ class AddressPartner(BaseModel):
         "activity_volume",
     )
     def serialize_volume(self, value: Decimal) -> str:
+        return f"{value:.6f}"
+
+class AddressActivity(BaseModel):
+    transaction_hash: str
+    log_index: int
+    block_number: int
+    timestamp: datetime
+    direction: Literal["sent", "received", "self"]
+    counterparty: str
+    amount: Decimal
+    token_symbol: str
+    chain: str
+
+    @field_serializer("amount")
+    def serialize_amount(self, value: Decimal) -> str:
         return f"{value:.6f}"

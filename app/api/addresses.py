@@ -12,6 +12,9 @@ from app.services.addresses import get_address_summary
 from app.schemas.addresses import AddressPartner
 from app.services.addresses import get_address_partners
 
+from app.schemas.addresses import AddressActivity
+from app.services.addresses import get_address_activity
+
 router = APIRouter(
     prefix="/addresses",
     tags=["addresses"],
@@ -67,6 +70,25 @@ async def address_partners(
         address=address,
         limit=limit,
         sort_by=sort_by,
+        chain=chain,
+        stablecoin=stablecoin,
+    )
+
+@router.get(
+    "/{address}/activity",
+    response_model=list[AddressActivity],
+)
+async def get_activity(
+    address: str,
+    limit: int = Query(default=20, ge=1, le=100),
+    chain: str = "base-sepolia",
+    stablecoin: str = "USDC",
+    session: AsyncSession = Depends(get_session),
+) -> list[AddressActivity]:
+    return await get_address_activity(
+        session=session,
+        address=address,
+        limit=limit,
         chain=chain,
         stablecoin=stablecoin,
     )

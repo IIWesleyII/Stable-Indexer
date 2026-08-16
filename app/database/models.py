@@ -1,6 +1,9 @@
 from datetime import datetime
 from decimal import Decimal
 
+
+from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import BigInteger
 from sqlalchemy import DateTime
 from sqlalchemy import Integer
@@ -53,4 +56,75 @@ class IndexerCheckpoint(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+class Watchlist(Base):
+    __tablename__ = "watchlists"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    name: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    addresses: Mapped[list["WatchlistAddress"]] = relationship(
+        back_populates="watchlist",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class WatchlistAddress(Base):
+    __tablename__ = "watchlist_addresses"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "watchlist_id",
+            "chain",
+            "address",
+            name="uq_watchlist_chain_address",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    watchlist_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "watchlists.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+    )
+
+    address: Mapped[str] = mapped_column(
+        String(128),
+        nullable=False,
+    )
+
+    label: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+
+    chain: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="base-sepolia",
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    watchlist: Mapped["Watchlist"] = relationship(
+        back_populates="addresses",
     )

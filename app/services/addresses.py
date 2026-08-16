@@ -272,3 +272,69 @@ async def get_address_partners(
         AddressPartner(**row)
         for row in result.mappings().all()
     ]
+
+async def get_address_activity(
+    session: AsyncSession,
+    address: str,
+    limit: int = 20,
+    chain: str = "base-sepolia",
+    stablecoin: str = "USDC",
+) -> list[dict]:
+    normalized_address = address.lower()
+
+    is_sender = (
+        func.lower(StablecoinTransfer.from_address) == normalized_address
+    )
+
+    is_receiver = (
+        func.lower(StablecoinTransfer.to_address) == normalized_address
+    )
+
+    direction = case(
+        (
+            is_sender & is_receiver,
+            "self",
+        ),
+        (
+            is_sender,
+            "sent",
+        ),
+        else_="received",
+    ).label("direction")
+
+    counterparty = case(
+        (
+            is_sender,
+            StablecoinTransfer.to_address,
+        ),
+        else_=StablecoinTransfer.from_address,
+    ).label("counterparty")
+
+    statement = (
+        select(
+            StablecoinTransfer.transaction_hash,
+            StablecoinTransfer.log_index,
+            StablecoinTransfer.block_number,
+            StablecoinTransfer.timestamp,
+            direction,
+            counterparty,
+            StablecoinTransfer.amount,
+            StablecoinTransfer.token_symbol,
+            StablecoinTransfer.chain,
+        )
+        .where(
+            StablecoinTransfer.chain == chain,
+            StablecoinTransfer.token_symbol == stablecoin,
+            StablecoinTransfer.event_type == "transfer",
+            or_(is_sender, is_receiver),
+        )
+        .order_by(
+            StablecoinTransfer.timestamp.desc(),
+            StablecoinTransfer.log_index.desc(),
+        )
+        .limit(limit)
+    )
+
+    result = await session.execute(statement)
+
+    return [dict(row) for row in result.mappings().all()]

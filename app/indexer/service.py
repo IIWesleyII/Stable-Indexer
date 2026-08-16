@@ -1,23 +1,51 @@
+from typing import Protocol
+
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.blockchain.base_sepolia import BaseSepoliaIndexer
 from app.database.models import IndexerCheckpoint
 from app.database.models import StablecoinTransfer
+from app.indexer.types import IndexedTransfer
+from app.schemas.indexer import IndexerStatus
 from app.schemas.transfers import ScanResult
 from app.schemas.transfers import SyncResult
-from app.schemas.indexer import IndexerStatus
+
+
+DB_INSERT_BATCH_SIZE = 1000
+
 
 class CheckpointNotInitializedError(Exception):
     pass
 
-DB_INSERT_BATCH_SIZE = 1000
-class IndexerService:
-    batch_size = 500
 
-    def __init__(self, session: AsyncSession) -> None:
+class TransferIndexer(Protocol):
+    chain: str
+
+    async def get_latest_block(self) -> int:
+        ...
+
+    async def get_block_hash(self, block_number: int) -> str:
+        ...
+
+    async def get_transfers(
+        self,
+        from_block: int,
+        to_block: int,
+    ) -> list[IndexedTransfer]:
+        ...
+
+
+class IndexerService:
+    def __init__(
+        self,
+        session: AsyncSession,
+        indexer: TransferIndexer | None = None,
+        batch_size: int = 500,
+    ) -> None:
         self.session = session
-        self.indexer = BaseSepoliaIndexer()
+        self.indexer = indexer or BaseSepoliaIndexer()
+        self.batch_size = batch_size
 
     async def get_checkpoint(self) -> IndexerCheckpoint | None:
         return await self.session.get(
@@ -25,7 +53,11 @@ class IndexerService:
             self.indexer.chain,
         )
 
-    async def scan(self, from_block: int, to_block: int) -> ScanResult:
+    async def scan(
+        self,
+        from_block: int,
+        to_block: int,
+    ) -> ScanResult:
         transfers = await self.indexer.get_transfers(
             from_block=from_block,
             to_block=to_block,
@@ -110,6 +142,7 @@ class IndexerService:
                 raise CheckpointNotInitializedError(
                     "start_block is required for the first sync"
                 )
+
             next_block = start_block
         else:
             next_block = checkpoint.last_processed_block + 1
@@ -130,6 +163,7 @@ class IndexerService:
             latest_block,
             next_block + max_blocks - 1,
         )
+
         total_discovered = 0
         total_inserted = 0
         batches = 0
@@ -140,13 +174,25 @@ class IndexerService:
                 batch_start + self.batch_size - 1,
                 sync_to,
             )
-            result = await self.scan(batch_start, batch_end)
+
+            result = await self.scan(
+                batch_start,
+                batch_end,
+            )
+
             total_discovered += result.discovered
             total_inserted += result.inserted
             batches += 1
 
-            block_hash = await self.indexer.get_block_hash(batch_end)
-            await self._save_checkpoint(batch_end, block_hash)
+            block_hash = await self.indexer.get_block_hash(
+                batch_end
+            )
+
+            await self._save_checkpoint(
+                batch_end,
+                block_hash,
+            )
+
             batch_start = batch_end + 1
 
         return SyncResult(
@@ -173,6 +219,7 @@ class IndexerService:
                 last_processed_block=block_number,
                 last_block_hash=block_hash,
             )
+
             self.session.add(checkpoint)
         else:
             checkpoint.last_processed_block = block_number
@@ -203,7 +250,7 @@ class IndexerService:
 
         if checkpoint is None:
             checkpoint = IndexerCheckpoint(
-                chain="base-sepolia",
+                chain=self.indexer.chain,
                 last_processed_block=checkpoint_block,
                 last_block_hash=block_hash,
             )
@@ -216,19 +263,20 @@ class IndexerService:
         await self.session.commit()
 
         return {
-            "chain": "base-sepolia",
+            "chain": self.indexer.chain,
             "latest_block": latest_block,
             "last_processed_block": checkpoint_block,
             "next_block": next_block,
             "blocks_behind": blocks_behind,
         }
+
     async def get_status(self) -> IndexerStatus:
         latest_block = await self.indexer.get_latest_block()
         checkpoint = await self.get_checkpoint()
 
         if checkpoint is None:
             return IndexerStatus(
-                chain="base-sepolia",
+                chain=self.indexer.chain,
                 latest_block=latest_block,
                 last_processed_block=None,
                 blocks_behind=None,
@@ -242,7 +290,7 @@ class IndexerService:
         )
 
         return IndexerStatus(
-            chain="base-sepolia",
+            chain=self.indexer.chain,
             latest_block=latest_block,
             last_processed_block=checkpoint.last_processed_block,
             blocks_behind=blocks_behind,

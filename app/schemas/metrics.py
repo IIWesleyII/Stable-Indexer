@@ -12,6 +12,7 @@ class MetricsSummary(BaseModel):
     unique_addresses: int = Field(examples=[2184])
 
 class TopAddress(BaseModel):
+    chain: str
     address: str
     transfer_count: int
     sent_count: int

@@ -1,190 +1,160 @@
-from decimal import Decimal
-
-from sqlalchemy import case
-from sqlalchemy import Numeric
-from sqlalchemy import distinct
 from sqlalchemy import func
 from sqlalchemy import literal
 from sqlalchemy import select
+from sqlalchemy import union
 from sqlalchemy import union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models import StablecoinTransfer
+from app.schemas.metrics import DailyVolume
 from app.schemas.metrics import MetricsSummary
 from app.schemas.metrics import TopAddress
-from app.schemas.metrics import DailyVolume
 
 async def get_summary_metrics(
     session: AsyncSession,
     chain: str | None = None,
-    stablecoin: str | None = None,
+    stablecoin: str | None = "USDC",
 ) -> MetricsSummary:
     conditions = [
-        StablecoinTransfer.event_type == "transfer"
+        StablecoinTransfer.event_type == "transfer",
     ]
 
-    if chain:
+    if chain is not None:
         conditions.append(
             StablecoinTransfer.chain == chain
         )
 
-    if stablecoin:
+    if stablecoin is not None:
         conditions.append(
-            StablecoinTransfer.token_symbol == stablecoin.upper()
+            StablecoinTransfer.token_symbol == stablecoin
         )
 
     summary_statement = select(
-        func.count(
-            StablecoinTransfer.id
-        ).label("transfer_count"),
-        func.sum(
-            StablecoinTransfer.amount
+        func.count(StablecoinTransfer.id).label("transfer_count"),
+        func.coalesce(
+            func.sum(StablecoinTransfer.amount),
+            0,
         ).label("total_volume"),
-        func.max(
-            StablecoinTransfer.amount
+        func.coalesce(
+            func.max(StablecoinTransfer.amount),
+            0,
         ).label("largest_transfer"),
-        func.min(
-            case(
-                (
-                    StablecoinTransfer.amount > 0,
-                    StablecoinTransfer.amount,
-                )
-            )
+        func.coalesce(
+            func.min(StablecoinTransfer.amount),
+            0,
         ).label("smallest_transfer"),
-    )
+    ).where(*conditions)
 
-    if conditions:
-        summary_statement = summary_statement.where(
-            *conditions
-        )
-
-    summary_result = await session.execute(
-        summary_statement
-    )
+    summary_result = await session.execute(summary_statement)
     summary = summary_result.one()
 
-    from_addresses = select(
-        StablecoinTransfer.from_address.label("address")
-    )
-
-    to_addresses = select(
-        StablecoinTransfer.to_address.label("address")
-    )
-
-    if conditions:
-        from_addresses = from_addresses.where(
-            *conditions
-        )
-        to_addresses = to_addresses.where(
-            *conditions
-        )
-
-    addresses = union_all(
-        from_addresses,
-        to_addresses,
+    addresses_statement = union(
+        select(
+            StablecoinTransfer.chain.label("chain"),
+            func.lower(
+                StablecoinTransfer.from_address
+            ).label("address"),
+        ).where(*conditions),
+        select(
+            StablecoinTransfer.chain.label("chain"),
+            func.lower(
+                StablecoinTransfer.to_address
+            ).label("address"),
+        ).where(*conditions),
     ).subquery()
 
-    address_statement = select(
-        func.count(
-            distinct(addresses.c.address)
-        )
-    )
+    unique_statement = select(
+        func.count().label("unique_addresses")
+    ).select_from(addresses_statement)
 
-    unique_addresses = await session.scalar(
-        address_statement
-    )
+    unique_result = await session.execute(unique_statement)
+    unique_addresses = unique_result.scalar_one()
 
     return MetricsSummary(
         transfer_count=summary.transfer_count,
-        total_volume=summary.total_volume or Decimal("0"),
-        largest_transfer=(
-            summary.largest_transfer or Decimal("0")
-        ),
-        smallest_transfer=(
-            summary.smallest_transfer or Decimal("0")
-        ),
-        unique_addresses=unique_addresses or 0,
+        total_volume=summary.total_volume,
+        largest_transfer=summary.largest_transfer,
+        smallest_transfer=summary.smallest_transfer,
+        unique_addresses=unique_addresses,
     )
 
 async def get_top_addresses(
     session: AsyncSession,
     limit: int = 10,
+    sort_by: str = "volume",
     chain: str | None = None,
-    stablecoin: str | None = None,
-    sort_by: str = "transfer_count",
+    stablecoin: str | None = "USDC",
 ) -> list[TopAddress]:
     conditions = [
-        StablecoinTransfer.event_type == "transfer"
+        StablecoinTransfer.event_type == "transfer",
     ]
 
-    if chain:
+    if chain is not None:
         conditions.append(
             StablecoinTransfer.chain == chain
         )
 
-    if stablecoin:
+    if stablecoin is not None:
         conditions.append(
-            StablecoinTransfer.token_symbol == stablecoin.upper()
+            StablecoinTransfer.token_symbol == stablecoin
         )
 
-    zero_volume = literal(0).cast(
-        Numeric(78, 18)
-    )
-
-    sent_activity = select(
-        StablecoinTransfer.id.label("transfer_id"),
-        StablecoinTransfer.from_address.label("address"),
-        literal(1).label("sent_count"),
-        literal(0).label("received_count"),
-        StablecoinTransfer.amount.label("sent_volume"),
-        zero_volume.label("received_volume"),
-    )
-
-    received_activity = select(
-        StablecoinTransfer.id.label("transfer_id"),
-        StablecoinTransfer.to_address.label("address"),
-        literal(0).label("sent_count"),
-        literal(1).label("received_count"),
-        zero_volume.label("sent_volume"),
-        StablecoinTransfer.amount.label("received_volume"),
-    )
-
-    if conditions:
-        sent_activity = sent_activity.where(
-            *conditions
+    sent = (
+        select(
+            StablecoinTransfer.chain.label("chain"),
+            func.lower(
+                StablecoinTransfer.from_address
+            ).label("address"),
+            literal(1).label("sent_count"),
+            literal(0).label("received_count"),
+            StablecoinTransfer.amount.label("sent_volume"),
+            literal(0).label("received_volume"),
         )
-        received_activity = received_activity.where(
-            *conditions
+        .where(*conditions)
+    )
+
+    received = (
+        select(
+            StablecoinTransfer.chain.label("chain"),
+            func.lower(
+                StablecoinTransfer.to_address
+            ).label("address"),
+            literal(0).label("sent_count"),
+            literal(1).label("received_count"),
+            literal(0).label("sent_volume"),
+            StablecoinTransfer.amount.label("received_volume"),
         )
+        .where(*conditions)
+    )
 
     activity = union_all(
-        sent_activity,
-        received_activity,
+        sent,
+        received,
     ).subquery()
-
-    transfer_count = func.count(
-        distinct(activity.c.transfer_id)
-    )
 
     sent_count = func.sum(
         activity.c.sent_count
-    )
+    ).label("sent_count")
 
     received_count = func.sum(
         activity.c.received_count
-    )
+    ).label("received_count")
+
+    transfer_count = (
+        sent_count + received_count
+    ).label("transfer_count")
 
     sent_volume = func.sum(
         activity.c.sent_volume
-    )
+    ).label("sent_volume")
 
     received_volume = func.sum(
         activity.c.received_volume
-    )
+    ).label("received_volume")
 
     activity_volume = (
         sent_volume + received_volume
-    )
+    ).label("activity_volume")
 
     if sort_by == "volume":
         order_by = (
@@ -199,15 +169,19 @@ async def get_top_addresses(
 
     statement = (
         select(
+            activity.c.chain,
             activity.c.address,
-            transfer_count.label("transfer_count"),
-            sent_count.label("sent_count"),
-            received_count.label("received_count"),
-            sent_volume.label("sent_volume"),
-            received_volume.label("received_volume"),
-            activity_volume.label("activity_volume"),
+            transfer_count,
+            sent_count,
+            received_count,
+            sent_volume,
+            received_volume,
+            activity_volume,
         )
-        .group_by(activity.c.address)
+        .group_by(
+            activity.c.chain,
+            activity.c.address,
+        )
         .order_by(*order_by)
         .limit(limit)
     )
@@ -223,39 +197,35 @@ async def get_daily_volume(
     session: AsyncSession,
     days: int = 30,
     chain: str | None = None,
-    stablecoin: str | None = None,
+    stablecoin: str | None = "USDC",
 ) -> list[DailyVolume]:
     conditions = [
-        StablecoinTransfer.event_type == "transfer"
+        StablecoinTransfer.event_type == "transfer",
     ]
 
-    if chain:
+    if chain is not None:
         conditions.append(
             StablecoinTransfer.chain == chain
         )
 
-    if stablecoin:
+    if stablecoin is not None:
         conditions.append(
-            StablecoinTransfer.token_symbol == stablecoin.upper()
+            StablecoinTransfer.token_symbol == stablecoin
         )
 
     day = func.date(
         StablecoinTransfer.timestamp
     ).label("date")
 
-    transfer_count = func.count(
-        StablecoinTransfer.id
-    ).label("transfer_count")
-
-    volume = func.sum(
-        StablecoinTransfer.amount
-    ).label("volume")
-
     statement = (
         select(
             day,
-            transfer_count,
-            volume,
+            func.count(
+                StablecoinTransfer.id
+            ).label("transfer_count"),
+            func.sum(
+                StablecoinTransfer.amount
+            ).label("volume"),
         )
         .where(*conditions)
         .group_by(day)

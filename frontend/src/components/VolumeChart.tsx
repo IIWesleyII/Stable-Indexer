@@ -14,6 +14,7 @@ import type { DailyVolume } from "../types/metrics";
 
 interface VolumeChartProps {
   data: DailyVolume[];
+  networkLabel: string;
 }
 
 type ChartMode = "volume" | "count";
@@ -44,7 +45,10 @@ function formatFullDate(value: string): string {
   });
 }
 
-export function VolumeChart({ data }: VolumeChartProps) {
+export function VolumeChart({
+  data,
+  networkLabel,
+}: VolumeChartProps) {
   const [mode, setMode] = useState<ChartMode>("volume");
 
   const chartData = data.map((item) => ({
@@ -70,13 +74,14 @@ export function VolumeChart({ data }: VolumeChartProps) {
           <h2>Daily Stablecoin Activity</h2>
 
           <p>
-            Base Sepolia • USDC • Transfers only
+            {networkLabel}
+            {" - USDC - Transfers only"}
           </p>
 
           {firstDate && lastDate && (
             <span className="chart-date-range">
               {formatFullDate(firstDate)}
-              {" – "}
+              {" - "}
               {formatFullDate(lastDate)}
             </span>
           )}

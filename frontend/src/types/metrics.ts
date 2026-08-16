@@ -13,6 +13,7 @@ export interface DailyVolume {
 }
 
 export interface TopAddress {
+  chain: string;
   address: string;
   transfer_count: number;
   sent_count: number;
@@ -23,3 +24,5 @@ export interface TopAddress {
 }
 
 export type TopAddressSort = "transfer_count" | "volume";
+
+export type MetricsNetwork = "base" | "base-sepolia";

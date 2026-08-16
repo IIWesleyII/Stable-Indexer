@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 
 import { getTopAddresses } from "../api/metrics";
 import type {
+  MetricsNetwork,
   TopAddress,
   TopAddressSort,
 } from "../types/metrics";
 
 export function useTopAddresses(
+  chain: MetricsNetwork,
   sortBy: TopAddressSort,
   limit = 10,
 ) {
@@ -18,8 +20,10 @@ export function useTopAddresses(
     async function loadAddresses() {
       try {
         setLoading(true);
+        setError(null);
 
         const addresses = await getTopAddresses(
+          chain,
           limit,
           sortBy,
         );
@@ -37,7 +41,7 @@ export function useTopAddresses(
     }
 
     loadAddresses();
-  }, [limit, sortBy]);
+  }, [chain, limit, sortBy]);
 
   return {
     data,

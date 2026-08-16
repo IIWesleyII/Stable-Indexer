@@ -1,8 +1,17 @@
-import { FormEvent, useState } from "react";
+import type { FormEvent } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 
+import type { MetricsNetwork } from "../types/metrics";
 
-export function AddressSearch() {
+interface AddressSearchProps {
+  network?: MetricsNetwork;
+}
+
+
+export function AddressSearch({
+  network,
+}: AddressSearchProps) {
   const [address, setAddress] = useState("");
   const navigate = useNavigate();
 
@@ -15,8 +24,14 @@ export function AddressSearch() {
       return;
     }
 
+    const path = `/addresses/${
+      encodeURIComponent(normalizedAddress)
+    }`;
+
     navigate(
-      `/addresses/${encodeURIComponent(normalizedAddress)}`,
+      network
+        ? `${path}?chain=${network}`
+        : path,
     );
 
     setAddress("");

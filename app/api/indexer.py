@@ -3,6 +3,7 @@ from fastapi import Depends
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.blockchain.base import BaseIndexer
 from app.blockchain.base_sepolia import BaseSepoliaIndexer
 from app.database.session import get_session
 from app.indexer.service import CheckpointNotInitializedError
@@ -103,11 +104,24 @@ async def reposition_checkpoint(
 
 @router.get(
     "/status",
-    response_model=IndexerStatus,
+    response_model=list[IndexerStatus],
 )
 async def indexer_status(
     session: AsyncSession = Depends(get_session),
-) -> IndexerStatus:
-    service = IndexerService(session)
+) -> list[IndexerStatus]:
+    statuses = []
 
-    return await service.get_status()
+    for indexer in (
+        BaseIndexer(),
+        BaseSepoliaIndexer(),
+    ):
+        service = IndexerService(
+            session=session,
+            indexer=indexer,
+        )
+
+        statuses.append(
+            await service.get_status()
+        )
+
+    return statuses

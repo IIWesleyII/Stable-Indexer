@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 
 import { getAddressSummary } from "../api/addresses";
 import type { AddressSummary } from "../types/addresses";
+import type { MetricsNetwork } from "../types/metrics";
 
 
 export function useAddress(
   address: string | undefined,
+  chain: MetricsNetwork,
 ) {
   const [data, setData] =
     useState<AddressSummary | null>(null);
@@ -28,6 +30,7 @@ export function useAddress(
 
         const result = await getAddressSummary(
           address!,
+          chain,
         );
 
         setData(result);
@@ -45,7 +48,7 @@ export function useAddress(
     }
 
     loadAddress();
-  }, [address]);
+  }, [address, chain]);
 
   return {
     data,

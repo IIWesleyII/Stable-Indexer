@@ -1,12 +1,22 @@
 import type {
   DailyVolume,
+  MetricsNetwork,
   MetricsSummary,
   TopAddress,
   TopAddressSort,
 } from "../types/metrics";
+import {
+  buildDailyVolumeUrl,
+  buildMetricsSummaryUrl,
+  buildTopAddressesUrl,
+} from "./metricsUrls";
 
-export async function getMetricsSummary(): Promise<MetricsSummary> {
-  const response = await fetch("/api/metrics/summary");
+export async function getMetricsSummary(
+  chain: MetricsNetwork,
+): Promise<MetricsSummary> {
+  const response = await fetch(
+    buildMetricsSummaryUrl(chain),
+  );
 
   if (!response.ok) {
     throw new Error("Failed to load summary metrics");
@@ -16,10 +26,14 @@ export async function getMetricsSummary(): Promise<MetricsSummary> {
 }
 
 export async function getDailyVolume(
+  chain: MetricsNetwork,
   days = 30,
 ): Promise<DailyVolume[]> {
   const response = await fetch(
-    `/api/metrics/volume?days=${days}`,
+    buildDailyVolumeUrl(
+      chain,
+      days,
+    ),
   );
 
   if (!response.ok) {
@@ -30,16 +44,16 @@ export async function getDailyVolume(
 }
 
 export async function getTopAddresses(
+  chain: MetricsNetwork,
   limit = 10,
   sortBy: TopAddressSort = "volume",
 ): Promise<TopAddress[]> {
-  const params = new URLSearchParams({
-    limit: String(limit),
-    sort_by: sortBy,
-  });
-
   const response = await fetch(
-    `/api/metrics/top-addresses?${params}`,
+    buildTopAddressesUrl(
+      chain,
+      limit,
+      sortBy,
+    ),
   );
 
   if (!response.ok) {

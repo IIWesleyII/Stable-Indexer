@@ -8,7 +8,7 @@ const POLL_INTERVAL = 5000;
 
 
 export function useIndexerStatus() {
-  const [data, setData] = useState<IndexerStatus | null>(null);
+  const [data, setData] = useState<IndexerStatus[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

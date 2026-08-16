@@ -1,8 +1,13 @@
-import type {TopAddress,TopAddressSort} from "../types/metrics";
+import type {
+  MetricsNetwork,
+  TopAddress,
+  TopAddressSort,
+} from "../types/metrics";
 import { Link } from "react-router";
 import { AddressSearch } from "./AddressSearch";
 interface TopAddressesTableProps {
   addresses: TopAddress[];
+  network: MetricsNetwork;
   sortBy: TopAddressSort;
   onSortChange: (sortBy: TopAddressSort) => void;
 }
@@ -23,6 +28,7 @@ function formatVolume(value: string): string {
 
 export function TopAddressesTable({
   addresses,
+  network,
   sortBy,
   onSortChange,
 }: TopAddressesTableProps) {
@@ -45,7 +51,7 @@ export function TopAddressesTable({
             Watchlist
           </Link>
 
-          <AddressSearch />
+          <AddressSearch network={network} />
 
           <select
             value={sortBy}
@@ -84,7 +90,9 @@ export function TopAddressesTable({
                 <td className="address-cell">
                   <Link
                     className="address-link"
-                    to={`/addresses/${address.address}`}
+                    to={
+                      `/addresses/${address.address}?chain=${network}`
+                    }
                   >
                     {formatAddress(address.address)}
                   </Link>

@@ -5,10 +5,12 @@ import type {
   AddressPartner,
   PartnerSort,
 } from "../types/addresses";
+import type { MetricsNetwork } from "../types/metrics";
 
 
 export function useAddressPartners(
   address: string | undefined,
+  chain: MetricsNetwork,
   sortBy: PartnerSort,
   limit = 10,
 ) {
@@ -29,6 +31,7 @@ export function useAddressPartners(
 
         const partners = await getAddressPartners(
           address!,
+          chain,
           limit,
           sortBy,
         );
@@ -48,6 +51,7 @@ export function useAddressPartners(
     loadPartners();
   }, [
     address,
+    chain,
     limit,
     sortBy,
   ]);

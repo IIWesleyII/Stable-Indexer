@@ -54,6 +54,30 @@ select {
   color: #66706a;
 }
 
+.dashboard-header-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.network-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #66706a;
+  font-size: 13px;
+}
+
+.network-selector select {
+  height: 40px;
+  min-width: 150px;
+  padding: 0 12px;
+  border: 1px solid #d5dbd7;
+  border-radius: 8px;
+  background: white;
+  color: #17211b;
+}
+
 
 /* Metric cards */
 
@@ -133,6 +157,12 @@ select {
   border: 1px solid #e1e6e2;
   border-radius: 10px;
   background: white;
+}
+
+.indexer-status-list {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .indexer-status-heading {
@@ -377,6 +407,12 @@ select {
   margin-bottom: 0;
 }
 
+.address-page-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
 .back-link:hover {
   color: #17211b;
 }
@@ -606,6 +642,16 @@ select {
     flex-direction: column;
   }
 
+  .dashboard-header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .network-selector,
+  .network-selector select {
+    width: 100%;
+  }
+
   .metrics-grid {
     grid-template-columns: 1fr;
   }
@@ -631,12 +677,23 @@ select {
     flex-direction: column;
   }
 
+  .address-page-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .address-page-nav .address-search {
     width: 100%;
   }
 
   .address-page-nav .address-search input {
     width: 100%;
+  }
+
+  .indexer-status-list {
+    width: 100%;
+    flex-direction: column;
   }
 
   .address-details {

@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 
 import { getDailyVolume } from "../api/metrics";
-import type { DailyVolume } from "../types/metrics";
+import type {
+  DailyVolume,
+  MetricsNetwork,
+} from "../types/metrics";
 
-export function useDailyVolume(days = 30) {
+export function useDailyVolume(
+  chain: MetricsNetwork,
+  days = 30,
+) {
   const [data, setData] = useState<DailyVolume[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -12,8 +18,12 @@ export function useDailyVolume(days = 30) {
     async function loadVolume() {
       try {
         setLoading(true);
+        setError(null);
 
-        const volume = await getDailyVolume(days);
+        const volume = await getDailyVolume(
+          chain,
+          days,
+        );
 
         setData(volume);
       } catch (err) {
@@ -28,7 +38,7 @@ export function useDailyVolume(days = 30) {
     }
 
     loadVolume();
-  }, [days]);
+  }, [chain, days]);
 
   return {
     data,

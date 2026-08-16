@@ -1,10 +1,24 @@
-import type {AddressPartner, AddressSummary, PartnerSort, AddressActivity} from "../types/addresses";
+import type {
+  AddressActivity,
+  AddressPartner,
+  AddressSummary,
+  PartnerSort,
+} from "../types/addresses";
+import type { MetricsNetwork } from "../types/metrics";
 
 export async function getAddressSummary(
   address: string,
+  chain: MetricsNetwork,
 ): Promise<AddressSummary> {
+  const params = new URLSearchParams({
+    chain,
+    stablecoin: "USDC",
+  });
+
   const response = await fetch(
-    `/api/addresses/${address}`,
+    `/api/addresses/${
+      encodeURIComponent(address)
+    }?${params}`,
   );
 
   if (response.status === 404) {
@@ -24,16 +38,21 @@ export async function getAddressSummary(
 
 export async function getAddressPartners(
   address: string,
+  chain: MetricsNetwork,
   limit = 10,
   sortBy: PartnerSort = "volume",
 ): Promise<AddressPartner[]> {
   const params = new URLSearchParams({
     limit: String(limit),
     sort_by: sortBy,
+    chain,
+    stablecoin: "USDC",
   });
 
   const response = await fetch(
-    `/api/addresses/${address}/partners?${params}`,
+    `/api/addresses/${
+      encodeURIComponent(address)
+    }/partners?${params}`,
   );
 
   if (!response.ok) {
@@ -45,10 +64,13 @@ export async function getAddressPartners(
 
 export async function getAddressActivity(
   address: string,
+  chain: MetricsNetwork,
   limit = 20,
 ): Promise<AddressActivity[]> {
   const params = new URLSearchParams({
     limit: String(limit),
+    chain,
+    stablecoin: "USDC",
   });
 
   const response = await fetch(

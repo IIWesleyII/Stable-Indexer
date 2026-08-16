@@ -1,27 +1,35 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router";
+import {
+  Link,
+  useParams,
+  useSearchParams,
+} from "react-router";
 
+import { AddToWatchlistButton } from "../components/AddToWatchlistButton";
+import { AddressSearch } from "../components/AddressSearch";
 import { MetricCard } from "../components/MetricCard";
 import { PartnersTable } from "../components/PartnersTable";
-import { useAddress } from "../hooks/useAddress";
-import { useAddressPartners } from "../hooks/useAddressPartners";
-import type { PartnerSort } from "../types/addresses";
-import { AddressSearch } from "../components/AddressSearch";
-import { AddToWatchlistButton } from "../components/AddToWatchlistButton";
 import { RecentActivityTable } from "../components/RecentActivityTable";
+import { useAddress } from "../hooks/useAddress";
 import { useAddressActivity } from "../hooks/useAddressActivity";
+import { useAddressPartners } from "../hooks/useAddressPartners";
+import {
+  getMetricsNetworkLabel,
+  NETWORK_OPTIONS,
+  parseMetricsNetwork,
+} from "../lib/networks";
+import type { PartnerSort } from "../types/addresses";
+import type { MetricsNetwork } from "../types/metrics";
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
-
 
 function formatUsdc(value: string): string {
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 6,
   }).format(Number(value));
 }
-
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleString("en-US", {
@@ -31,25 +39,43 @@ function formatDate(value: string): string {
   });
 }
 
-
 export function AddressPage() {
   const { address } = useParams();
+  const [searchParams, setSearchParams] =
+    useSearchParams();
+
+  const network = parseMetricsNetwork(
+    searchParams.get("chain"),
+  );
 
   const [partnerSort, setPartnerSort] =
     useState<PartnerSort>("volume");
+
+  function handleNetworkChange(nextNetwork: MetricsNetwork) {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("chain", nextNetwork);
+    setSearchParams(nextParams);
+  }
 
   const {
     data,
     loading,
     error,
-  } = useAddress(address);
+  } = useAddress(
+    address,
+    network,
+  );
 
   const partners = useAddressPartners(
     address,
+    network,
     partnerSort,
   );
 
-  const activity = useAddressActivity(address);
+  const activity = useAddressActivity(
+    address,
+    network,
+  );
 
   if (loading) {
     return (
@@ -64,9 +90,9 @@ export function AddressPage() {
       <main className="dashboard">
         <Link
           className="back-link"
-          to="/"
+          to={`/?chain=${network}`}
         >
-          ← Back to dashboard
+          {"<- Back to dashboard"}
         </Link>
 
         <p>
@@ -78,37 +104,62 @@ export function AddressPage() {
 
   return (
     <main className="dashboard">
-        <div className="address-page-nav">
+      <div className="address-page-nav">
         <Link
-            className="back-link"
-            to="/"
+          className="back-link"
+          to={`/?chain=${network}`}
         >
-            ← Dashboard
+          {"<- Dashboard"}
         </Link>
 
-        <AddressSearch />
+        <div className="address-page-actions">
+          <label className="network-selector">
+            <span>Network</span>
+
+            <select
+              value={network}
+              onChange={(event) => {
+                handleNetworkChange(
+                  event.target.value as MetricsNetwork,
+                );
+              }}
+            >
+              {NETWORK_OPTIONS.map((option) => (
+                <option
+                  key={option.value}
+                  value={option.value}
+                >
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <AddressSearch network={network} />
         </div>
+      </div>
 
-        <header className="address-header">
+      <header className="address-header">
         <div>
-            <span className="page-label">
+          <span className="page-label">
             Address
-            </span>
+          </span>
 
-            <h1 className="full-address">
+          <h1 className="full-address">
             {data.address}
-            </h1>
+          </h1>
 
-            <p>
-            Indexed stablecoin activity for this
-            address.
-            </p>
+          <p>
+            {getMetricsNetworkLabel(network)}
+            {" stablecoin activity for this address."}
+          </p>
         </div>
 
         <AddToWatchlistButton
-            address={data.address}
+          address={data.address}
+          chain={network}
         />
-        </header>
+      </header>
 
       <section className="metrics-grid">
         <MetricCard
@@ -209,17 +260,17 @@ export function AddressPage() {
           />
         )}
 
-          {activity.loading && (
-            <p>Loading recent activity...</p>
-          )}
+      {activity.loading && (
+        <p>Loading recent activity...</p>
+      )}
 
-          {activity.error && (
-            <p>{activity.error}</p>
-          )}
+      {activity.error && (
+        <p>{activity.error}</p>
+      )}
 
-          {!activity.loading && !activity.error && (
-            <RecentActivityTable activity={activity.data} />
-          )}
+      {!activity.loading && !activity.error && (
+        <RecentActivityTable activity={activity.data} />
+      )}
     </main>
   );
 }

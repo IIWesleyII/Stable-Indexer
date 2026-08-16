@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 
 import { getMetricsSummary } from "../api/metrics";
-import type { MetricsSummary } from "../types/metrics";
+import type {
+  MetricsNetwork,
+  MetricsSummary,
+} from "../types/metrics";
 
-export function useSummaryMetrics() {
+export function useSummaryMetrics(chain: MetricsNetwork) {
   const [data, setData] = useState<MetricsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -11,7 +14,10 @@ export function useSummaryMetrics() {
   useEffect(() => {
     async function loadMetrics() {
       try {
-        const metrics = await getMetricsSummary();
+        setLoading(true);
+        setError(null);
+
+        const metrics = await getMetricsSummary(chain);
 
         setData(metrics);
       } catch (err) {
@@ -26,7 +32,7 @@ export function useSummaryMetrics() {
     }
 
     loadMetrics();
-  }, []);
+  }, [chain]);
 
   return {
     data,

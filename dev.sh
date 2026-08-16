@@ -19,7 +19,7 @@ cleanup() {
   wait 2>/dev/null || true
 
   echo "Stopping Docker services..."
-  docker compose down
+  docker compose stop
 
   echo "Stable Indexer stopped."
 }

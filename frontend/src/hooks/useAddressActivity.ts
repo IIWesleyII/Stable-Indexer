@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 
 import { getAddressActivity } from "../api/addresses";
 import type { AddressActivity } from "../types/addresses";
+import type { MetricsNetwork } from "../types/metrics";
 
 
 export function useAddressActivity(
   address: string | undefined,
+  chain: MetricsNetwork,
   limit = 20,
 ) {
   const [data, setData] = useState<AddressActivity[]>([]);
@@ -23,7 +25,12 @@ export function useAddressActivity(
         setLoading(true);
         setError(null);
 
-        const result = await getAddressActivity(address!, limit);
+        const result = await getAddressActivity(
+          address!,
+          chain,
+          limit,
+        );
+
         setData(result);
       } catch (loadError) {
         if (loadError instanceof Error) {
@@ -37,7 +44,7 @@ export function useAddressActivity(
     }
 
     loadActivity();
-  }, [address, limit]);
+  }, [address, chain, limit]);
 
   return {
     data,

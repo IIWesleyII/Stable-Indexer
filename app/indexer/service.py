@@ -10,6 +10,7 @@ from app.indexer.types import IndexedTransfer
 from app.schemas.indexer import IndexerStatus
 from app.schemas.transfers import ScanResult
 from app.schemas.transfers import SyncResult
+from app.services.metric_rollups import update_metric_rollups
 
 
 DB_INSERT_BATCH_SIZE = 1000
@@ -28,11 +29,24 @@ class TransferIndexer(Protocol):
     async def get_block_hash(self, block_number: int) -> str:
         ...
 
+    async def get_block_timestamp(self, block_number: int) -> int:
+        ...
+
+    async def get_block_at_or_after_timestamp(
+        self,
+        timestamp: int,
+        latest_block: int | None = None,
+    ) -> int:
+        ...
+
     async def get_transfers(
         self,
         from_block: int,
         to_block: int,
     ) -> list[IndexedTransfer]:
+        ...
+
+    async def close(self) -> None:
         ...
 
 
@@ -63,13 +77,24 @@ class IndexerService:
             to_block=to_block,
         )
 
+        result = await self.insert_transfers(transfers)
+
+        return ScanResult(
+            from_block=from_block,
+            to_block=to_block,
+            discovered=result["discovered"],
+            inserted=result["inserted"],
+        )
+
+    async def insert_transfers(
+        self,
+        transfers: list[IndexedTransfer],
+    ) -> dict[str, int]:
         if not transfers:
-            return ScanResult(
-                from_block=from_block,
-                to_block=to_block,
-                discovered=0,
-                inserted=0,
-            )
+            return {
+                "discovered": 0,
+                "inserted": 0,
+            }
 
         rows = [
             {
@@ -107,13 +132,23 @@ class IndexerService:
                 )
 
                 statement = statement.returning(
-                    StablecoinTransfer.id
+                    StablecoinTransfer.chain,
+                    StablecoinTransfer.token_symbol,
+                    StablecoinTransfer.timestamp,
+                    StablecoinTransfer.from_address,
+                    StablecoinTransfer.to_address,
+                    StablecoinTransfer.amount,
+                    StablecoinTransfer.event_type,
                 )
 
                 result = await self.session.execute(statement)
+                inserted_rows = result.mappings().all()
 
-                inserted += len(
-                    result.scalars().all()
+                inserted += len(inserted_rows)
+
+                await update_metric_rollups(
+                    session=self.session,
+                    transfers=inserted_rows,
                 )
 
             await self.session.commit()
@@ -122,12 +157,10 @@ class IndexerService:
             await self.session.rollback()
             raise
 
-        return ScanResult(
-            from_block=from_block,
-            to_block=to_block,
-            discovered=len(transfers),
-            inserted=inserted,
-        )
+        return {
+            "discovered": len(transfers),
+            "inserted": inserted,
+        }
 
     async def sync(
         self,
@@ -188,7 +221,7 @@ class IndexerService:
                 batch_end
             )
 
-            await self._save_checkpoint(
+            await self.save_checkpoint(
                 batch_end,
                 block_hash,
             )
@@ -206,7 +239,7 @@ class IndexerService:
             caught_up=sync_to == latest_block,
         )
 
-    async def _save_checkpoint(
+    async def save_checkpoint(
         self,
         block_number: int,
         block_hash: str,
@@ -268,6 +301,44 @@ class IndexerService:
             "last_processed_block": checkpoint_block,
             "next_block": next_block,
             "blocks_behind": blocks_behind,
+        }
+
+    async def rewind_checkpoint(
+        self,
+        start_block: int,
+    ) -> dict:
+        if start_block < 0:
+            raise ValueError("start_block must not be negative")
+
+        checkpoint_block = start_block - 1
+
+        if checkpoint_block < 0:
+            block_hash = "before-genesis"
+        else:
+            block_hash = await self.indexer.get_block_hash(
+                checkpoint_block
+            )
+
+        checkpoint = await self.get_checkpoint()
+
+        if checkpoint is None:
+            checkpoint = IndexerCheckpoint(
+                chain=self.indexer.chain,
+                last_processed_block=checkpoint_block,
+                last_block_hash=block_hash,
+            )
+
+            self.session.add(checkpoint)
+        else:
+            checkpoint.last_processed_block = checkpoint_block
+            checkpoint.last_block_hash = block_hash
+
+        await self.session.commit()
+
+        return {
+            "chain": self.indexer.chain,
+            "last_processed_block": checkpoint_block,
+            "next_block": start_block,
         }
 
     async def get_status(self) -> IndexerStatus:

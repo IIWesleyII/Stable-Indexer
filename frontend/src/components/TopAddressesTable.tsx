@@ -1,13 +1,19 @@
 import type {
+  DashboardNetwork,
   MetricsNetwork,
   TopAddress,
   TopAddressSort,
 } from "../types/metrics";
+import { Bookmark } from "lucide-react";
 import { Link } from "react-router";
+import {
+  ALL_NETWORKS,
+  getMetricsNetworkLabel,
+} from "../lib/networks";
 import { AddressSearch } from "./AddressSearch";
 interface TopAddressesTableProps {
   addresses: TopAddress[];
-  network: MetricsNetwork;
+  network: DashboardNetwork;
   sortBy: TopAddressSort;
   onSortChange: (sortBy: TopAddressSort) => void;
 }
@@ -32,6 +38,8 @@ export function TopAddressesTable({
   sortBy,
   onSortChange,
 }: TopAddressesTableProps) {
+  const isAllNetworks = network === ALL_NETWORKS;
+
   return (
     <section className="dashboard-section">
       <div className="section-header">
@@ -48,10 +56,13 @@ export function TopAddressesTable({
             className="watchlist-table-link"
             to="/watchlist"
           >
+            <Bookmark aria-hidden="true" size={15} />
             Watchlist
           </Link>
 
-          <AddressSearch network={network} />
+          {!isAllNetworks && (
+            <AddressSearch network={network as MetricsNetwork} />
+          )}
 
           <select
             value={sortBy}
@@ -77,26 +88,36 @@ export function TopAddressesTable({
           <thead>
             <tr>
               <th>Address</th>
+              {isAllNetworks && <th>Chain</th>}
               <th>Transfers</th>
-              <th>Sent</th>
-              <th>Received</th>
-              <th>Volume</th>
+              <th>USDC Volume</th>
+              <th>USDT Volume</th>
+              <th>Total Volume</th>
             </tr>
           </thead>
 
           <tbody>
             {addresses.map((address) => (
-              <tr key={address.address}>
+              <tr key={`${address.chain}:${address.address}`}>
                 <td className="address-cell">
                   <Link
                     className="address-link"
                     to={
-                      `/addresses/${address.address}?chain=${network}`
+                      `/addresses/${address.address}?chain=`
+                      + `${isAllNetworks ? address.chain : network}`
                     }
                   >
                     {formatAddress(address.address)}
                   </Link>
                 </td>
+
+                {isAllNetworks && (
+                  <td>
+                    {getMetricsNetworkLabel(
+                      address.chain as MetricsNetwork,
+                    )}
+                  </td>
+                )}
 
                 <td>
                   {formatNumber(
@@ -106,13 +127,13 @@ export function TopAddressesTable({
 
                 <td>
                   {formatVolume(
-                    address.sent_volume,
+                    address.usdc_activity_volume,
                   )}
                 </td>
 
                 <td>
                   {formatVolume(
-                    address.received_volume,
+                    address.usdt_activity_volume,
                   )}
                 </td>
 

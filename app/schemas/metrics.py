@@ -20,11 +20,15 @@ class TopAddress(BaseModel):
     sent_volume: Decimal
     received_volume: Decimal
     activity_volume: Decimal
+    usdc_activity_volume: Decimal
+    usdt_activity_volume: Decimal
 
     @field_serializer(
         "sent_volume",
         "received_volume",
         "activity_volume",
+        "usdc_activity_volume",
+        "usdt_activity_volume",
     )
     def serialize_volume(self, value: Decimal) -> str:
         # keep it to USDC 6 decimal standard
@@ -32,6 +36,7 @@ class TopAddress(BaseModel):
 
 class DailyVolume(BaseModel):
     date: date
+    token_symbol: str
     transfer_count: int
     volume: Decimal
 

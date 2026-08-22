@@ -5,9 +5,9 @@ from dataclasses import dataclass
 from typing import Callable
 
 from app.blockchain.base import BaseIndexer
-from app.blockchain.base_sepolia import BaseSepoliaIndexer
 from app.blockchain.ethereum import EthereumIndexer
 from app.blockchain.solana import SolanaIndexer
+from app.blockchain.tron import TronIndexer
 from app.config import settings
 from app.database.session import SessionLocal
 from app.indexer.service import CheckpointNotInitializedError
@@ -44,13 +44,6 @@ class WorkerConfig:
 def get_worker_configs() -> tuple[WorkerConfig, ...]:
     configs = [
         WorkerConfig(
-            chain="base-sepolia",
-            indexer_factory=BaseSepoliaIndexer,
-            batch_size=500,
-            max_blocks_per_sync=500,
-            initial_lookback_seconds=INITIAL_LOOKBACK_SECONDS,
-        ),
-        WorkerConfig(
             chain="base",
             indexer_factory=BaseIndexer,
             batch_size=25,
@@ -78,6 +71,17 @@ def get_worker_configs() -> tuple[WorkerConfig, ...]:
                 batch_size=5,
                 max_blocks_per_sync=25,
                 initial_blocks_behind=100,
+            )
+        )
+
+    if settings.trongrid_api_key:
+        configs.append(
+            WorkerConfig(
+                chain="tron",
+                indexer_factory=TronIndexer,
+                batch_size=20,
+                max_blocks_per_sync=100,
+                initial_lookback_seconds=INITIAL_LOOKBACK_SECONDS,
             )
         )
 

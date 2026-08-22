@@ -12,7 +12,6 @@ export async function getAddressSummary(
 ): Promise<AddressSummary> {
   const params = new URLSearchParams({
     chain,
-    stablecoin: "USDC",
   });
 
   const response = await fetch(
@@ -46,7 +45,6 @@ export async function getAddressPartners(
     limit: String(limit),
     sort_by: sortBy,
     chain,
-    stablecoin: "USDC",
   });
 
   const response = await fetch(
@@ -70,7 +68,6 @@ export async function getAddressActivity(
   const params = new URLSearchParams({
     limit: String(limit),
     chain,
-    stablecoin: "USDC",
   });
 
   const response = await fetch(

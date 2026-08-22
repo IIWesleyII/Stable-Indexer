@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { Search } from "lucide-react";
 
 import type { MetricsNetwork } from "../types/metrics";
 
@@ -50,8 +51,8 @@ export function AddressSearch({
         value={address}
       />
 
-      <button type="submit">
-        Search
+      <button aria-label="Search address" title="Search address" type="submit">
+        <Search aria-hidden="true" size={17} />
       </button>
     </form>
   );

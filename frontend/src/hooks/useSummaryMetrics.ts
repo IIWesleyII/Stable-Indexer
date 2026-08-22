@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 
 import { getMetricsSummary } from "../api/metrics";
 import type {
-  MetricsNetwork,
+  DashboardNetwork,
   MetricsSummary,
 } from "../types/metrics";
 
-export function useSummaryMetrics(chain: MetricsNetwork) {
+export function useSummaryMetrics(chain: DashboardNetwork) {
   const [data, setData] = useState<MetricsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

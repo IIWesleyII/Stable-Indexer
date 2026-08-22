@@ -81,8 +81,8 @@ async def address_partners(
 async def get_activity(
     address: str,
     limit: int = Query(default=20, ge=1, le=100),
-    chain: str = "base-sepolia",
-    stablecoin: str = "USDC",
+    chain: str = "base",
+    stablecoin: str | None = None,
     session: AsyncSession = Depends(get_session),
 ) -> list[AddressActivity]:
     return await get_address_activity(

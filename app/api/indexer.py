@@ -4,7 +4,10 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.blockchain.base import BaseIndexer
-from app.blockchain.base_sepolia import BaseSepoliaIndexer
+from app.blockchain.ethereum import EthereumIndexer
+from app.blockchain.solana import SolanaIndexer
+from app.blockchain.tron import TronIndexer
+from app.config import settings
 from app.database.session import get_session
 from app.indexer.service import CheckpointNotInitializedError
 from app.indexer.service import IndexerService
@@ -30,12 +33,16 @@ router = APIRouter(prefix="/indexer", tags=["indexer"])
 
 @router.get("/latest-block", response_model=LatestBlockRead)
 async def get_latest_block() -> LatestBlockRead:
-    indexer = BaseSepoliaIndexer()
-    block_number = await indexer.get_latest_block()
-    return LatestBlockRead(
-        chain=indexer.chain,
-        block_number=block_number,
-    )
+    indexer = BaseIndexer()
+
+    try:
+        block_number = await indexer.get_latest_block()
+        return LatestBlockRead(
+            chain=indexer.chain,
+            block_number=block_number,
+        )
+    finally:
+        await indexer.close()
 
 
 @router.get("/checkpoint", response_model=CheckpointRead)
@@ -43,15 +50,19 @@ async def get_checkpoint(
     session: AsyncSession = Depends(get_session),
 ) -> CheckpointRead:
     service = IndexerService(session)
-    checkpoint = await service.get_checkpoint()
 
-    if checkpoint is None:
-        raise HTTPException(
-            status_code=404,
-            detail="No checkpoint exists yet. Run the first sync.",
-        )
+    try:
+        checkpoint = await service.get_checkpoint()
 
-    return CheckpointRead.model_validate(checkpoint)
+        if checkpoint is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No checkpoint exists yet. Run the first sync.",
+            )
+
+        return CheckpointRead.model_validate(checkpoint)
+    finally:
+        await service.indexer.close()
 
 
 @router.post("/scan", response_model=ScanResult)
@@ -60,10 +71,14 @@ async def scan_blocks(
     session: AsyncSession = Depends(get_session),
 ) -> ScanResult:
     service = IndexerService(session)
-    return await service.scan(
-        from_block=request.from_block,
-        to_block=request.to_block,
-    )
+
+    try:
+        return await service.scan(
+            from_block=request.from_block,
+            to_block=request.to_block,
+        )
+    finally:
+        await service.indexer.close()
 
 
 @router.post("/sync", response_model=SyncResult)
@@ -83,6 +98,8 @@ async def sync_blocks(
             status_code=409,
             detail=str(exc),
         ) from exc
+    finally:
+        await service.indexer.close()
 
 @router.post("/checkpoint/reposition")
 async def reposition_checkpoint(
@@ -100,6 +117,8 @@ async def reposition_checkpoint(
             status_code=400,
             detail=str(exc),
         ) from exc
+    finally:
+        await service.indexer.close()
 
 
 @router.get(
@@ -111,17 +130,32 @@ async def indexer_status(
 ) -> list[IndexerStatus]:
     statuses = []
 
-    for indexer in (
-        BaseIndexer(),
-        BaseSepoliaIndexer(),
-    ):
-        service = IndexerService(
-            session=session,
-            indexer=indexer,
+    indexers = [BaseIndexer()]
+
+    if settings.ethereum_rpc_url:
+        indexers.insert(
+            1,
+            EthereumIndexer(),
         )
 
-        statuses.append(
-            await service.get_status()
-        )
+    if settings.solana_rpc_url:
+        indexers.append(SolanaIndexer())
 
-    return statuses
+    if settings.trongrid_api_key:
+        indexers.append(TronIndexer())
+
+    try:
+        for indexer in indexers:
+            service = IndexerService(
+                session=session,
+                indexer=indexer,
+            )
+
+            statuses.append(
+                await service.get_status()
+            )
+
+        return statuses
+    finally:
+        for indexer in indexers:
+            await indexer.close()

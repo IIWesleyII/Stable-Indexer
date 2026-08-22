@@ -1,53 +1,36 @@
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 
-import {
-  removeWatchlistAddress,
-} from "../api/watchlists";
+import { removeWatchlistAddress } from "../api/watchlists";
 import { useWatchlist } from "../hooks/useWatchlist";
-
 
 function formatAddress(address: string): string {
   return `${address.slice(0, 8)}...${address.slice(-6)}`;
 }
 
-
 function formatNumber(value: number): string {
-  return new Intl.NumberFormat(
-    "en-US",
-  ).format(value);
+  return new Intl.NumberFormat("en-US").format(value);
 }
-
 
 function formatVolume(value: string): string {
-  return new Intl.NumberFormat(
-    "en-US",
-    {
-      maximumFractionDigits: 6,
-    },
-  ).format(Number(value));
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 6,
+  }).format(Number(value));
 }
 
-
-function formatDate(
-  value: string | null,
-): string {
+function formatDate(value: string | null): string {
   if (!value) {
-    return "—";
+    return "-";
   }
 
-  return new Date(
-    value,
-  ).toLocaleDateString("en-US", {
+  return new Date(value).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
 }
 
-
-function getNetFlowClass(
-  value: string,
-): string {
+function getNetFlowClass(value: string): string {
   const numericValue = Number(value);
 
   if (numericValue > 0) {
@@ -61,7 +44,6 @@ function getNetFlowClass(
   return "";
 }
 
-
 export function WatchlistPage() {
   const {
     watchlists,
@@ -74,10 +56,7 @@ export function WatchlistPage() {
     reload,
   } = useWatchlist();
 
-  async function handleRemove(
-    address: string,
-    chain: string,
-  ) {
+  async function handleRemove(address: string, chain: string) {
     if (!watchlist) {
       return;
     }
@@ -88,99 +67,69 @@ export function WatchlistPage() {
         address,
         chain,
       );
-
-      await reload(
-        watchlist.id,
-      );
+      await reload(watchlist.id);
     } catch (removeError) {
       console.error(removeError);
     }
   }
 
-  async function handleWatchlistChange(
-    watchlistId: number,
-  ) {
+  async function handleWatchlistChange(watchlistId: number) {
     setSelectedId(watchlistId);
-
-    await reload(
-      watchlistId,
-    );
+    await reload(watchlistId);
   }
 
   if (loading) {
     return (
-      <main className="dashboard">
-        <p>
-          Loading watchlist...
-        </p>
+      <main className="page">
+        <p>Loading watchlist...</p>
       </main>
     );
   }
 
   if (error) {
     return (
-      <main className="dashboard">
-        <Link
-          className="back-link"
-          to="/"
-        >
-          ← Dashboard
+      <main className="page">
+        <Link className="back-link" to="/">
+          <ArrowLeft aria-hidden="true" size={16} />
+          Dashboard
         </Link>
-
         <p>{error}</p>
       </main>
     );
   }
 
   return (
-    <main className="dashboard">
-      <div className="watchlist-page-header">
+    <main className="page watchlist-page">
+      <header className="watchlist-page-header">
         <div>
-          <Link
-            className="back-link"
-            to="/"
-          >
-            ← Dashboard
+          <Link className="back-link" to="/">
+            <ArrowLeft aria-hidden="true" size={16} />
+            Dashboard
           </Link>
-
-          <h1>Watchlist</h1>
-
-          <p>
-            Monitor stablecoin activity for
-            addresses you care about.
-          </p>
+          <span className="eyebrow">Monitored addresses</span>
+          <h1>Watchlists</h1>
+          <p>Monitor stablecoin activity for addresses you care about.</p>
         </div>
 
         {watchlists.length > 1 && (
           <select
             onChange={(event) => {
-              handleWatchlistChange(
-                Number(
-                  event.target.value,
-                ),
-              );
+              handleWatchlistChange(Number(event.target.value));
             }}
             value={selectedId ?? ""}
           >
-            {watchlists.map(
-              (item) => (
-                <option
-                  key={item.id}
-                  value={item.id}
-                >
-                  {item.name}
-                </option>
-              ),
-            )}
+            {watchlists.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
           </select>
         )}
-      </div>
+      </header>
 
       {!watchlist && (
         <section className="dashboard-section">
-          <p>
-            No watchlists found.
-          </p>
+          <p>No watchlists found.</p>
         </section>
       )}
 
@@ -188,26 +137,19 @@ export function WatchlistPage() {
         <section className="dashboard-section">
           <div className="section-header">
             <div>
-              <h2>
-                {watchlist.name}
-              </h2>
-
+              <h2>{watchlist.name}</h2>
               <p>
                 {analytics.length}
                 {" "}
                 watched
                 {" "}
-                {analytics.length === 1
-                  ? "address"
-                  : "addresses"}
+                {analytics.length === 1 ? "address" : "addresses"}
               </p>
             </div>
           </div>
 
           {analytics.length === 0 ? (
-            <p>
-              No addresses have been added yet.
-            </p>
+            <p>No addresses have been added yet.</p>
           ) : (
             <div className="table-wrapper">
               <table className="data-table">
@@ -226,91 +168,57 @@ export function WatchlistPage() {
                 </thead>
 
                 <tbody>
-                  {analytics.map(
-                    (item) => (
-                      <tr key={item.id}>
-                        <td className="address-cell">
-                          <Link
-                            className="address-link"
-                            to={
-                              `/addresses/${item.address}`
-                            }
-                          >
-                            {formatAddress(
-                              item.address,
-                            )}
-                          </Link>
-                        </td>
-
-                        <td>
-                          {item.label ?? "—"}
-                        </td>
-
-                        <td>
-                          {formatNumber(
-                            item.transfer_count,
-                          )}
-                        </td>
-
-                        <td>
-                          {formatVolume(
-                            item.sent_volume,
-                          )}
-                          {" "}
-                          USDC
-                        </td>
-
-                        <td>
-                          {formatVolume(
-                            item.received_volume,
-                          )}
-                          {" "}
-                          USDC
-                        </td>
-
-                        <td
-                          className={
-                            getNetFlowClass(
-                              item.net_flow,
-                            )
+                  {analytics.map((item) => (
+                    <tr key={item.id}>
+                      <td className="address-cell">
+                        <Link
+                          className="address-link"
+                          to={
+                            `/addresses/${item.address}?chain=${item.chain}`
                           }
                         >
-                          {formatVolume(
-                            item.net_flow,
-                          )}
-                          {" "}
-                          USDC
-                        </td>
+                          {formatAddress(item.address)}
+                        </Link>
+                      </td>
 
-                        <td>
-                          {formatNumber(
-                            item.unique_partners,
-                          )}
-                        </td>
+                      <td>{item.label ?? "-"}</td>
 
-                        <td>
-                          {formatDate(
-                            item.last_activity,
-                          )}
-                        </td>
+                      <td>{formatNumber(item.transfer_count)}</td>
 
-                        <td>
-                          <button
-                            className="remove-button"
-                            onClick={() => {
-                              handleRemove(
-                                item.address,
-                                item.chain,
-                              );
-                            }}
-                            type="button"
-                          >
-                            Remove
-                          </button>
-                        </td>
-                      </tr>
-                    ),
-                  )}
+                      <td>
+                        {formatVolume(item.sent_volume)}
+                        {" USDC / USDT"}
+                      </td>
+
+                      <td>
+                        {formatVolume(item.received_volume)}
+                        {" USDC / USDT"}
+                      </td>
+
+                      <td className={getNetFlowClass(item.net_flow)}>
+                        {formatVolume(item.net_flow)}
+                        {" USDC / USDT"}
+                      </td>
+
+                      <td>{formatNumber(item.unique_partners)}</td>
+
+                      <td>{formatDate(item.last_activity)}</td>
+
+                      <td>
+                        <button
+                          aria-label={`Remove ${item.address}`}
+                          className="remove-button"
+                          onClick={() => {
+                            handleRemove(item.address, item.chain);
+                          }}
+                          title="Remove from watchlist"
+                          type="button"
+                        >
+                          <Trash2 aria-hidden="true" size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

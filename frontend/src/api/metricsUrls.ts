@@ -1,40 +1,55 @@
 import type {
-  MetricsNetwork,
+  DashboardNetwork,
   TopAddressSort,
 } from "../types/metrics";
 
-export function buildMetricsSummaryUrl(
-  chain: MetricsNetwork,
+function buildMetricUrl(
+  path: string,
+  params: URLSearchParams,
 ): string {
-  const params = new URLSearchParams({
-    chain,
-  });
+  return params.size > 0 ? `${path}?${params}` : path;
+}
 
-  return `/api/metrics/summary?${params}`;
+export function buildMetricsSummaryUrl(
+  chain: DashboardNetwork,
+): string {
+  const params = new URLSearchParams();
+
+  if (chain !== "all") {
+    params.set("chain", chain);
+  }
+
+  return buildMetricUrl("/api/metrics/summary", params);
 }
 
 export function buildDailyVolumeUrl(
-  chain: MetricsNetwork,
+  chain: DashboardNetwork,
   days = 30,
 ): string {
   const params = new URLSearchParams({
     days: String(days),
-    chain,
   });
 
-  return `/api/metrics/volume?${params}`;
+  if (chain !== "all") {
+    params.set("chain", chain);
+  }
+
+  return buildMetricUrl("/api/metrics/volume", params);
 }
 
 export function buildTopAddressesUrl(
-  chain: MetricsNetwork,
+  chain: DashboardNetwork,
   limit = 10,
   sortBy: TopAddressSort = "volume",
 ): string {
   const params = new URLSearchParams({
     limit: String(limit),
     sort_by: sortBy,
-    chain,
   });
 
-  return `/api/metrics/top-addresses?${params}`;
+  if (chain !== "all") {
+    params.set("chain", chain);
+  }
+
+  return buildMetricUrl("/api/metrics/top-addresses", params);
 }

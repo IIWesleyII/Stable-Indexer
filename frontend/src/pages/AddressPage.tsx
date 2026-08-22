@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import {
   Link,
   useParams,
@@ -25,7 +26,7 @@ function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-function formatUsdc(value: string): string {
+function formatStablecoinValue(value: string): string {
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 6,
   }).format(Number(value));
@@ -39,6 +40,8 @@ function formatDate(value: string): string {
   });
 }
 
+type AddressView = "activity" | "partners";
+
 export function AddressPage() {
   const { address } = useParams();
   const [searchParams, setSearchParams] =
@@ -50,6 +53,8 @@ export function AddressPage() {
 
   const [partnerSort, setPartnerSort] =
     useState<PartnerSort>("volume");
+  const [activeView, setActiveView] =
+    useState<AddressView>("activity");
 
   function handleNetworkChange(nextNetwork: MetricsNetwork) {
     const nextParams = new URLSearchParams(searchParams);
@@ -79,7 +84,7 @@ export function AddressPage() {
 
   if (loading) {
     return (
-      <main className="dashboard">
+      <main className="page">
         <p>Loading address...</p>
       </main>
     );
@@ -87,12 +92,13 @@ export function AddressPage() {
 
   if (error || !data) {
     return (
-      <main className="dashboard">
+      <main className="page">
         <Link
           className="back-link"
           to={`/?chain=${network}`}
         >
-          {"<- Back to dashboard"}
+          <ArrowLeft aria-hidden="true" size={16} />
+          Dashboard
         </Link>
 
         <p>
@@ -103,17 +109,18 @@ export function AddressPage() {
   }
 
   return (
-    <main className="dashboard">
+    <main className="page address-page">
       <div className="address-page-nav">
         <Link
           className="back-link"
           to={`/?chain=${network}`}
         >
-          {"<- Dashboard"}
+          <ArrowLeft aria-hidden="true" size={16} />
+          Dashboard
         </Link>
 
         <div className="address-page-actions">
-          <label className="network-selector">
+          <label className="network-selector compact-control">
             <span>Network</span>
 
             <select
@@ -141,17 +148,17 @@ export function AddressPage() {
 
       <header className="address-header">
         <div>
-          <span className="page-label">
-            Address
-          </span>
+          <span className="eyebrow">Address profile</span>
 
           <h1 className="full-address">
             {data.address}
           </h1>
 
           <p>
-            {getMetricsNetworkLabel(network)}
-            {" stablecoin activity for this address."}
+            <span className={`network-badge ${network}`}>
+              {getMetricsNetworkLabel(network)}
+            </span>
+            {" indexed stablecoin activity"}
           </p>
         </div>
 
@@ -171,27 +178,27 @@ export function AddressPage() {
 
         <MetricCard
           label="Sent"
-          value={`${formatUsdc(
+          value={`${formatStablecoinValue(
             data.sent_volume,
-          )} USDC`}
+          )} USDC / USDT`}
         />
 
         <MetricCard
           label="Received"
-          value={`${formatUsdc(
+          value={`${formatStablecoinValue(
             data.received_volume,
-          )} USDC`}
+          )} USDC / USDT`}
         />
 
         <MetricCard
           label="Net Flow"
-          value={`${formatUsdc(
+          value={`${formatStablecoinValue(
             data.net_flow,
-          )} USDC`}
+          )} USDC / USDT`}
         />
       </section>
 
-      <section className="address-details">
+      <section className="address-details" aria-label="Address details">
         <div>
           <span>Unique Partners</span>
 
@@ -243,32 +250,56 @@ export function AddressPage() {
         </div>
       </section>
 
-      {partners.loading && (
-        <p>Loading partners...</p>
+      <div
+        aria-label="Address data view"
+        className="content-tabs"
+        role="tablist"
+      >
+        <button
+          aria-selected={activeView === "activity"}
+          className={activeView === "activity" ? "active" : ""}
+          onClick={() => setActiveView("activity")}
+          role="tab"
+          type="button"
+        >
+          Activity
+        </button>
+        <button
+          aria-selected={activeView === "partners"}
+          className={activeView === "partners" ? "active" : ""}
+          onClick={() => setActiveView("partners")}
+          role="tab"
+          type="button"
+        >
+          Counterparties
+        </button>
+      </div>
+
+      {activeView === "partners" && partners.loading && (
+        <p>Loading counterparties...</p>
       )}
 
-      {partners.error && (
+      {activeView === "partners" && partners.error && (
         <p>{partners.error}</p>
       )}
 
-      {!partners.loading
-        && !partners.error && (
-          <PartnersTable
-            partners={partners.data}
-            sortBy={partnerSort}
-            onSortChange={setPartnerSort}
-          />
-        )}
+      {activeView === "partners" && !partners.loading && !partners.error && (
+        <PartnersTable
+          partners={partners.data}
+          sortBy={partnerSort}
+          onSortChange={setPartnerSort}
+        />
+      )}
 
-      {activity.loading && (
+      {activeView === "activity" && activity.loading && (
         <p>Loading recent activity...</p>
       )}
 
-      {activity.error && (
+      {activeView === "activity" && activity.error && (
         <p>{activity.error}</p>
       )}
 
-      {!activity.loading && !activity.error && (
+      {activeView === "activity" && !activity.loading && !activity.error && (
         <RecentActivityTable activity={activity.data} />
       )}
     </main>

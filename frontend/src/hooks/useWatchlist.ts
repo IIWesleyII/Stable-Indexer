@@ -53,7 +53,6 @@ export function useWatchlist() {
 
         const id =
           watchlistId
-          ?? selectedId
           ?? lists[0].id;
 
         setSelectedId(id);
@@ -80,7 +79,7 @@ export function useWatchlist() {
         setLoading(false);
       }
     },
-    [selectedId],
+    [],
   );
 
   useEffect(() => {

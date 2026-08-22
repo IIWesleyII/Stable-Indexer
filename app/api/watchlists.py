@@ -122,7 +122,7 @@ async def add_address(
 async def remove_address(
     watchlist_id: int,
     address: str,
-    chain: str = "base-sepolia",
+    chain: str = "base",
     session: AsyncSession = Depends(
         get_session,
     ),
@@ -150,7 +150,7 @@ async def remove_address(
 )
 async def get_analytics(
     watchlist_id: int,
-    stablecoin: str = "USDC",
+    stablecoin: str | None = None,
     session: AsyncSession = Depends(
         get_session,
     ),

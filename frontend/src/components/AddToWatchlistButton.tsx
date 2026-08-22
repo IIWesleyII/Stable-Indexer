@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
+import { BookmarkPlus } from "lucide-react";
 
 import {
   addWatchlistAddress,
   getWatchlists,
 } from "../api/watchlists";
+import type { MetricsNetwork } from "../types/metrics";
 import type { Watchlist } from "../types/watchlists";
 
 
 interface AddToWatchlistButtonProps {
   address: string;
-  chain?: string;
+  chain?: MetricsNetwork;
 }
 
 
 export function AddToWatchlistButton({
   address,
-  chain = "base-sepolia",
+  chain = "base",
 }: AddToWatchlistButtonProps) {
   const [watchlists, setWatchlists] =
     useState<Watchlist[]>([]);
@@ -92,7 +94,8 @@ export function AddToWatchlistButton({
         }}
         type="button"
       >
-        + Add to Watchlist
+        <BookmarkPlus aria-hidden="true" size={16} />
+        Add to Watchlist
       </button>
 
       {isOpen && (

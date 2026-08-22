@@ -8,6 +8,7 @@ export interface MetricsSummary {
 
 export interface DailyVolume {
   date: string;
+  token_symbol: string;
   transfer_count: number;
   volume: string;
 }
@@ -21,8 +22,16 @@ export interface TopAddress {
   sent_volume: string;
   received_volume: string;
   activity_volume: string;
+  usdc_activity_volume: string;
+  usdt_activity_volume: string;
 }
 
 export type TopAddressSort = "transfer_count" | "volume";
 
-export type MetricsNetwork = "base" | "base-sepolia";
+export type MetricsNetwork =
+  | "base"
+  | "ethereum"
+  | "solana"
+  | "tron";
+
+export type DashboardNetwork = MetricsNetwork | "all";

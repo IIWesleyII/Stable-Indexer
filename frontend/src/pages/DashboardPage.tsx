@@ -1,27 +1,26 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router";
-import { IndexerStatus } from "../components/IndexerStatus";
 import { MetricCard } from "../components/MetricCard";
+import { NetworkStatusCards } from "../components/NetworkStatusCards";
 import { TopAddressesTable } from "../components/TopAddressesTable";
 import { VolumeChart } from "../components/VolumeChart";
 import { useDailyVolume } from "../hooks/useDailyVolume";
 import { useSummaryMetrics } from "../hooks/useSummaryMetrics";
 import { useTopAddresses } from "../hooks/useTopAddresses";
 import type {
-  MetricsNetwork,
+  DashboardNetwork,
   TopAddressSort,
 } from "../types/metrics";
 import {
-  getMetricsNetworkLabel,
-  NETWORK_OPTIONS,
-  parseMetricsNetwork,
+  getDashboardNetworkLabel,
+  parseDashboardNetwork,
 } from "../lib/networks";
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-function formatUsdc(value: string): string {
+function formatStablecoinValue(value: string): string {
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 2,
   }).format(Number(value));
@@ -34,11 +33,11 @@ export function DashboardPage() {
   const [sortBy, setSortBy] =
     useState<TopAddressSort>("volume");
 
-  const network = parseMetricsNetwork(
+  const network = parseDashboardNetwork(
     searchParams.get("chain"),
   );
 
-  function handleNetworkChange(nextNetwork: MetricsNetwork) {
+  function handleNetworkChange(nextNetwork: DashboardNetwork) {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("chain", nextNetwork);
     setSearchParams(nextParams);
@@ -71,43 +70,19 @@ export function DashboardPage() {
   }
 
   return (
-    <main className="dashboard">
-    <header className="dashboard-header">
-      <div>
-        <h1>Stable Indexer</h1>
+    <main className="page dashboard">
+      <header className="page-intro dashboard-header">
+        <div>
+          <h1>{getDashboardNetworkLabel(network)} Stablecoin Activity</h1>
+        </div>
 
-        <p>
-          Stablecoin intelligence across blockchain
-          networks.
-        </p>
-      </div>
+        <NetworkStatusCards
+          network={network}
+          onNetworkChange={handleNetworkChange}
+        />
+      </header>
 
-      <div className="dashboard-header-actions">
-        <label className="network-selector">
-          <span>Network</span>
 
-          <select
-            value={network}
-            onChange={(event) => {
-              handleNetworkChange(
-                event.target.value as MetricsNetwork,
-              );
-            }}
-          >
-            {NETWORK_OPTIONS.map((option) => (
-              <option
-                key={option.value}
-                value={option.value}
-              >
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <IndexerStatus />
-      </div>
-    </header>
 
       <section className="metrics-grid">
         <MetricCard
@@ -118,21 +93,13 @@ export function DashboardPage() {
         />
 
         <MetricCard
-          label="Total Volume"
-          value={
-            `${formatUsdc(
-              summary.data.total_volume,
-            )} USDC`
-          }
+          label="Total Volume (USDC + USDT)"
+          value={`$${formatStablecoinValue(summary.data.total_volume)}`}
         />
 
         <MetricCard
-          label="Largest Transfer"
-          value={
-            `${formatUsdc(
-              summary.data.largest_transfer,
-            )} USDC`
-          }
+          label="Largest Transfer (USDC / USDT)"
+          value={`$${formatStablecoinValue(summary.data.largest_transfer)}`}
         />
 
         <MetricCard
@@ -155,9 +122,6 @@ export function DashboardPage() {
         && !dailyVolume.error && (
           <VolumeChart
             data={dailyVolume.data}
-            networkLabel={getMetricsNetworkLabel(
-              network,
-            )}
           />
         )}
 

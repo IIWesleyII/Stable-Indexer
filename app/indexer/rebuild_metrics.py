@@ -110,7 +110,7 @@ async def rebuild_metrics(chain: str | None = None) -> None:
             activity_cte = (
                 "WITH activity AS ("
                 "SELECT chain, token_symbol, "
-                "CASE WHEN chain = 'solana' THEN from_address "
+                "CASE WHEN chain IN ('solana', 'tron') THEN from_address "
                 "ELSE lower(from_address) END AS address, "
                 "1 AS sent_count, 0 AS received_count, amount AS sent_volume, "
                 "0::numeric AS received_volume "
@@ -118,7 +118,7 @@ async def rebuild_metrics(chain: str | None = None) -> None:
                 f"WHERE {filter_sql} "
                 "UNION ALL "
                 "SELECT chain, token_symbol, "
-                "CASE WHEN chain = 'solana' THEN to_address "
+                "CASE WHEN chain IN ('solana', 'tron') THEN to_address "
                 "ELSE lower(to_address) END AS address, "
                 "0 AS sent_count, 1 AS received_count, 0::numeric AS sent_volume, "
                 "amount AS received_volume "

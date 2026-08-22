@@ -1,6 +1,6 @@
 import type {
   DailyVolume,
-  MetricsNetwork,
+  DashboardNetwork,
   MetricsSummary,
   TopAddress,
   TopAddressSort,
@@ -12,7 +12,7 @@ import {
 } from "./metricsUrls";
 
 export async function getMetricsSummary(
-  chain: MetricsNetwork,
+  chain: DashboardNetwork,
 ): Promise<MetricsSummary> {
   const response = await fetch(
     buildMetricsSummaryUrl(chain),
@@ -26,7 +26,7 @@ export async function getMetricsSummary(
 }
 
 export async function getDailyVolume(
-  chain: MetricsNetwork,
+  chain: DashboardNetwork,
   days = 30,
 ): Promise<DailyVolume[]> {
   const response = await fetch(
@@ -44,7 +44,7 @@ export async function getDailyVolume(
 }
 
 export async function getTopAddresses(
-  chain: MetricsNetwork,
+  chain: DashboardNetwork,
   limit = 10,
   sortBy: TopAddressSort = "volume",
 ): Promise<TopAddress[]> {

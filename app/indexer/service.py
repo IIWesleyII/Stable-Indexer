@@ -3,7 +3,7 @@ from typing import Protocol
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.blockchain.base_sepolia import BaseSepoliaIndexer
+from app.blockchain.base import BaseIndexer
 from app.database.models import IndexerCheckpoint
 from app.database.models import StablecoinTransfer
 from app.indexer.types import IndexedTransfer
@@ -58,7 +58,7 @@ class IndexerService:
         batch_size: int = 500,
     ) -> None:
         self.session = session
-        self.indexer = indexer or BaseSepoliaIndexer()
+        self.indexer = indexer or BaseIndexer()
         self.batch_size = batch_size
 
     async def get_checkpoint(self) -> IndexerCheckpoint | None:

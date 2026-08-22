@@ -60,7 +60,9 @@ done
 echo "PostgreSQL is ready."
 
 echo "Starting FastAPI..."
-fastapi dev app/main.py &
+uvicorn app.main:app \
+  --reload \
+  --loop app.uvicorn_loop:create_event_loop &
 PIDS+=("$!")
 
 echo "Starting indexer worker..."

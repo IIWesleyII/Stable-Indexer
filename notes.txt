@@ -11,7 +11,6 @@ fastapi dev
 python -m app.indexer.worker
 
 npm run dev
-1. Base Sepolia pipeline                  
 2. Core analytics                        
 3. Address exploration                   
 4. Basic watchlists                      

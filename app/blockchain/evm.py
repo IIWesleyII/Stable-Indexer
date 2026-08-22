@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from aiohttp import ClientResponseError
 from datetime import datetime
 from datetime import timezone
@@ -16,6 +17,11 @@ from app.indexer.types import IndexedTransfer
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 RETRYABLE_HTTP_STATUSES = {429, 500, 502, 503, 504}
+
+
+class EvmRpcError(Exception):
+    pass
+
 
 def get_event_type(from_address: str, to_address: str) -> str:
     if from_address.lower() == ZERO_ADDRESS:
@@ -40,28 +46,84 @@ class EvmIndexer:
     def __init__(
         self,
         chain: EvmChainConfig,
-        token: TokenConfig,
+        token: TokenConfig | None = None,
+        tokens: tuple[TokenConfig, ...] | None = None,
     ) -> None:
+        if token is not None and tokens is not None:
+            raise ValueError("Provide either token or tokens, not both")
+
+        if tokens is None:
+            if token is None:
+                raise ValueError("At least one token is required")
+
+            tokens = (token,)
+
         self.chain_config = chain
         self.chain = chain.name
-        self.token = token
+        self.tokens = tokens
+        # Retained for the single-token historical importer.
+        self.token = tokens[0]
 
         self.w3 = AsyncWeb3(
             AsyncHTTPProvider(chain.rpc_url)
         )
+        self.w3.provider.logger.setLevel(logging.WARNING)
 
-        self.contract = self.w3.eth.contract(
-            address=Web3.to_checksum_address(self.token.address),
-            abi=ERC20_TRANSFER_ABI,
-        )
+        self.contracts = {
+            token.address.lower(): self.w3.eth.contract(
+                address=Web3.to_checksum_address(token.address),
+                abi=ERC20_TRANSFER_ABI,
+            )
+            for token in self.tokens
+        }
+
+    async def close(self) -> None:
+        await self.w3.provider.disconnect()
 
     async def get_latest_block(self) -> int:
-        return await self.w3.eth.block_number
+        try:
+            return await self.w3.eth.block_number
+        except ClientResponseError as exc:
+            raise EvmRpcError(
+                f"{self.chain} RPC request failed with HTTP {exc.status}"
+            ) from None
 
     async def get_block_hash(self, block_number: int) -> str:
         block = await self.w3.eth.get_block(block_number)
 
         return to_hex(block["hash"])
+
+    async def get_block_timestamp(
+        self,
+        block_number: int,
+    ) -> int:
+        block = await self.w3.eth.get_block(block_number)
+
+        return block["timestamp"]
+
+    async def get_block_at_or_after_timestamp(
+        self,
+        timestamp: int,
+        latest_block: int | None = None,
+    ) -> int:
+        if latest_block is None:
+            latest_block = await self.get_latest_block()
+
+        low = 0
+        high = latest_block
+
+        while low < high:
+            middle = (low + high) // 2
+            middle_timestamp = await self.get_block_timestamp(
+                middle
+            )
+
+            if middle_timestamp < timestamp:
+                low = middle + 1
+            else:
+                high = middle
+
+        return low
 
     async def get_block_with_retry(
         self,
@@ -75,8 +137,14 @@ class EvmIndexer:
                 try:
                     return await self.w3.eth.get_block(block_number)
                 except ClientResponseError as exc:
-                    if exc.status not in RETRYABLE_HTTP_STATUSES or attempt == 4:
-                        raise
+                    if (
+                        exc.status not in RETRYABLE_HTTP_STATUSES
+                        or attempt == 4
+                    ):
+                        raise EvmRpcError(
+                            f"{self.chain} RPC request failed "
+                            f"with HTTP {exc.status}"
+                        ) from None
 
                     await asyncio.sleep(delay)
                     delay *= 2
@@ -93,13 +161,29 @@ class EvmIndexer:
         if from_block > to_block:
             raise ValueError("from_block must be <= to_block")
 
-        logs = await self.get_logs_with_retry(
-            from_block=from_block,
-            to_block=to_block,
+        token_logs = await asyncio.gather(
+            *(
+                self.get_logs_with_retry(
+                    token=token,
+                    from_block=from_block,
+                    to_block=to_block,
+                )
+                for token in self.tokens
+            )
         )
 
+        logs = [
+            (token, log)
+            for token, entries in zip(
+                self.tokens,
+                token_logs,
+                strict=True,
+            )
+            for log in entries
+        ]
+
         block_numbers = sorted(
-            {log["blockNumber"] for log in logs}
+            {log["blockNumber"] for _, log in logs}
         )
 
         semaphore = asyncio.Semaphore(3)
@@ -119,17 +203,17 @@ class EvmIndexer:
             for block in blocks
         }
 
-        divisor = Decimal(10) ** self.token.decimals
         transfers: list[IndexedTransfer] = []
 
-        for log in logs:
+        for token, log in logs:
             amount_raw = Decimal(log["args"]["value"])
+            divisor = Decimal(10) ** token.decimals
 
             transfers.append(
                 IndexedTransfer(
                     chain=self.chain,
-                    token_symbol=self.token.symbol,
-                    token_address=self.token.address,
+                    token_symbol=token.symbol,
+                    token_address=token.address,
                     transaction_hash=to_hex(log["transactionHash"]),
                     log_index=log["logIndex"],
                     block_number=log["blockNumber"],
@@ -150,6 +234,7 @@ class EvmIndexer:
     
     async def get_logs_with_retry(
         self,
+        token: TokenConfig,
         from_block: int,
         to_block: int,
     ) -> list:
@@ -157,13 +242,34 @@ class EvmIndexer:
 
         for attempt in range(5):
             try:
-                return await self.contract.events.Transfer().get_logs(
+                contract = self.contracts[token.address.lower()]
+
+                return await contract.events.Transfer().get_logs(
                     from_block=from_block,
                     to_block=to_block,
                 )
             except ClientResponseError as exc:
+                if exc.status == 400 and from_block < to_block:
+                    midpoint = (from_block + to_block) // 2
+
+                    first_half = await self.get_logs_with_retry(
+                        token=token,
+                        from_block=from_block,
+                        to_block=midpoint,
+                    )
+                    second_half = await self.get_logs_with_retry(
+                        token=token,
+                        from_block=midpoint + 1,
+                        to_block=to_block,
+                    )
+
+                    return first_half + second_half
+
                 if exc.status not in RETRYABLE_HTTP_STATUSES or attempt == 4:
-                    raise
+                    raise EvmRpcError(
+                        f"{self.chain} RPC request failed "
+                        f"with HTTP {exc.status}"
+                    ) from None
 
                 await asyncio.sleep(delay)
                 delay *= 2

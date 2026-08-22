@@ -40,14 +40,43 @@ const networks = await importTypeScript(
   "src/lib/networks.ts",
 );
 
+const dailyActivity = await importTypeScript(
+  "src/lib/dailyActivity.ts",
+);
+
 assert.equal(
   metricsUrls.buildMetricsSummaryUrl("base"),
   "/api/metrics/summary?chain=base",
 );
 
 assert.equal(
-  metricsUrls.buildDailyVolumeUrl("base-sepolia", 14),
-  "/api/metrics/volume?days=14&chain=base-sepolia",
+  metricsUrls.buildMetricsSummaryUrl("ethereum"),
+  "/api/metrics/summary?chain=ethereum",
+);
+
+assert.equal(
+  metricsUrls.buildMetricsSummaryUrl("solana"),
+  "/api/metrics/summary?chain=solana",
+);
+
+assert.equal(
+  metricsUrls.buildMetricsSummaryUrl("tron"),
+  "/api/metrics/summary?chain=tron",
+);
+
+assert.equal(
+  metricsUrls.buildMetricsSummaryUrl("all"),
+  "/api/metrics/summary",
+);
+
+assert.equal(
+  metricsUrls.buildDailyVolumeUrl("all", 14),
+  "/api/metrics/volume?days=14",
+);
+
+assert.equal(
+  metricsUrls.buildTopAddressesUrl("all", 25, "volume"),
+  "/api/metrics/top-addresses?limit=25&sort_by=volume",
 );
 
 assert.equal(
@@ -72,8 +101,16 @@ assert.deepEqual(
       value: "base",
     },
     {
-      label: "Base Sepolia",
-      value: "base-sepolia",
+      label: "Ethereum",
+      value: "ethereum",
+    },
+    {
+      label: "Solana",
+      value: "solana",
+    },
+    {
+      label: "Tron",
+      value: "tron",
     },
   ],
 );
@@ -84,13 +121,67 @@ assert.equal(
 );
 
 assert.equal(
-  networks.parseMetricsNetwork("base-sepolia"),
-  "base-sepolia",
+  networks.parseDashboardNetwork("all"),
+  "all",
+);
+
+assert.equal(
+  networks.getDashboardNetworkLabel("all"),
+  "All Networks",
 );
 
 assert.equal(
   networks.parseMetricsNetwork("ethereum"),
-  "base",
+  "ethereum",
+);
+
+assert.equal(
+  networks.parseMetricsNetwork("solana"),
+  "solana",
+);
+
+assert.equal(
+  networks.parseMetricsNetwork("tron"),
+  "tron",
+);
+
+assert.deepEqual(
+  dailyActivity.buildDailyActivityChartData([
+    {
+      date: "2026-08-18",
+      token_symbol: "USDC",
+      transfer_count: 12,
+      volume: "1250.50",
+    },
+    {
+      date: "2026-08-18",
+      token_symbol: "USDT",
+      transfer_count: 8,
+      volume: "900.25",
+    },
+    {
+      date: "2026-08-19",
+      token_symbol: "USDC",
+      transfer_count: 4,
+      volume: "75.00",
+    },
+  ]),
+  [
+    {
+      date: "2026-08-18",
+      usdc_volume: 1250.5,
+      usdc_transfer_count: 12,
+      usdt_volume: 900.25,
+      usdt_transfer_count: 8,
+    },
+    {
+      date: "2026-08-19",
+      usdc_volume: 75,
+      usdc_transfer_count: 4,
+      usdt_volume: 0,
+      usdt_transfer_count: 0,
+    },
+  ],
 );
 
 console.log("Regression checks passed");

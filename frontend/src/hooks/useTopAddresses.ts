@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 
 import { getTopAddresses } from "../api/metrics";
 import type {
-  MetricsNetwork,
+  DashboardNetwork,
   TopAddress,
   TopAddressSort,
 } from "../types/metrics";
 
 export function useTopAddresses(
-  chain: MetricsNetwork,
+  chain: DashboardNetwork,
   sortBy: TopAddressSort,
   limit = 10,
 ) {

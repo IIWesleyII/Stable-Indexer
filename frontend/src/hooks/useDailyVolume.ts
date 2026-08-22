@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 import { getDailyVolume } from "../api/metrics";
 import type {
   DailyVolume,
-  MetricsNetwork,
+  DashboardNetwork,
 } from "../types/metrics";
 
 export function useDailyVolume(
-  chain: MetricsNetwork,
+  chain: DashboardNetwork,
   days = 30,
 ) {
   const [data, setData] = useState<DailyVolume[]>([]);

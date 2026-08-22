@@ -11,10 +11,10 @@ import {
 } from "recharts";
 
 import type { DailyVolume } from "../types/metrics";
+import { buildDailyActivityChartData } from "../lib/dailyActivity";
 
 interface VolumeChartProps {
   data: DailyVolume[];
-  networkLabel: string;
 }
 
 type ChartMode = "volume" | "count";
@@ -47,25 +47,18 @@ function formatFullDate(value: string): string {
 
 export function VolumeChart({
   data,
-  networkLabel,
 }: VolumeChartProps) {
   const [mode, setMode] = useState<ChartMode>("volume");
 
-  const chartData = data.map((item) => ({
-    ...item,
-    volume: Number(item.volume),
-  }));
+  const chartData = buildDailyActivityChartData(data);
 
-  const firstDate = data.at(0)?.date;
-  const lastDate = data.at(-1)?.date;
+  const usdcDataKey = mode === "volume"
+    ? "usdc_volume"
+    : "usdc_transfer_count";
 
-  const dataKey = mode === "volume"
-    ? "volume"
-    : "transfer_count";
-
-  const label = mode === "volume"
-    ? "Transfer Volume"
-    : "Transfer Count";
+  const usdtDataKey = mode === "volume"
+    ? "usdt_volume"
+    : "usdt_transfer_count";
 
   return (
     <section className="dashboard-section">
@@ -73,18 +66,6 @@ export function VolumeChart({
         <div>
           <h2>Daily Stablecoin Activity</h2>
 
-          <p>
-            {networkLabel}
-            {" - USDC - Transfers only"}
-          </p>
-
-          {firstDate && lastDate && (
-            <span className="chart-date-range">
-              {formatFullDate(firstDate)}
-              {" - "}
-              {formatFullDate(lastDate)}
-            </span>
-          )}
         </div>
 
         <div className="chart-toggle">
@@ -104,6 +85,17 @@ export function VolumeChart({
             Transfer Count
           </button>
         </div>
+      </div>
+
+      <div className="chart-legend">
+        <span className="token-legend usdc">
+          <i />
+          USDC
+        </span>
+        <span className="token-legend usdt">
+          <i />
+          USDT
+        </span>
       </div>
 
       <div className="chart-container">
@@ -128,27 +120,27 @@ export function VolumeChart({
               labelFormatter={(value) => {
                 return formatFullDate(String(value));
               }}
-              formatter={(value) => {
+              formatter={(value, name) => {
                 const numberValue = Number(value);
-
-                if (mode === "volume") {
-                  return [
-                    `${numberValue.toLocaleString()} USDC`,
-                    label,
-                  ];
-                }
 
                 return [
                   numberValue.toLocaleString(),
-                  label,
+                  name,
                 ];
               }}
             />
 
             <Bar
-              dataKey={dataKey}
-              name={label}
-              fill="currentColor"
+              dataKey={usdcDataKey}
+              name="USDC"
+              fill="#2775ca"
+              radius={[4, 4, 0, 0]}
+            />
+
+            <Bar
+              dataKey={usdtDataKey}
+              name="USDT"
+              fill="#26a17b"
               radius={[4, 4, 0, 0]}
             />
           </BarChart>

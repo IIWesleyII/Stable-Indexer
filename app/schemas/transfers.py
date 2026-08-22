@@ -8,7 +8,7 @@ from pydantic import Field
 
 class TransferRead(BaseModel):
     id: int = Field(examples=[1])
-    chain: str = Field(examples=["base-sepolia"])
+    chain: str = Field(examples=["base"])
     token_symbol: str = Field(examples=["USDC"])
     token_address: str = Field(
         examples=["0x036CbD53842c5426634e7929541eC2318f3dCF7e"]

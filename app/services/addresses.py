@@ -13,22 +13,54 @@ from app.database.models import StablecoinTransfer
 from app.schemas.addresses import AddressSummary
 from app.schemas.addresses import AddressPartner
 
+
+CASE_SENSITIVE_ADDRESS_CHAINS = {"solana", "tron"}
+
+
+def normalized_address(column, chain: str | None):
+    if chain in CASE_SENSITIVE_ADDRESS_CHAINS:
+        return column
+
+    return func.lower(column)
+
+
+def normalized_address_value(
+    address: str,
+    chain: str | None,
+) -> str:
+    value = address.strip()
+
+    if chain in CASE_SENSITIVE_ADDRESS_CHAINS:
+        return value
+
+    return value.lower()
+
+
 async def get_address_summary(
     session: AsyncSession,
     address: str,
     chain: str | None = None,
     stablecoin: str | None = None,
 ) -> AddressSummary | None:
-    normalized_address = address.lower()
+    normalized_value = normalized_address_value(
+        address,
+        chain,
+    )
 
     is_sender = (
-        func.lower(StablecoinTransfer.from_address)
-        == normalized_address
+        normalized_address(
+            StablecoinTransfer.from_address,
+            chain,
+        )
+        == normalized_value
     )
 
     is_receiver = (
-        func.lower(StablecoinTransfer.to_address)
-        == normalized_address
+        normalized_address(
+            StablecoinTransfer.to_address,
+            chain,
+        )
+        == normalized_value
     )
 
     conditions = [
@@ -117,8 +149,8 @@ async def get_address_summary(
         )
         .where(
             *conditions,
-            func.lower(partner_address)
-            != normalized_address,
+            normalized_address(partner_address, chain)
+            != normalized_value,
         )
     )
 
@@ -150,16 +182,25 @@ async def get_address_partners(
     chain: str | None = None,
     stablecoin: str | None = None,
 ) -> list[AddressPartner]:
-    normalized_address = address.lower()
+    normalized_value = normalized_address_value(
+        address,
+        chain,
+    )
 
     is_sender = (
-        func.lower(StablecoinTransfer.from_address)
-        == normalized_address
+        normalized_address(
+            StablecoinTransfer.from_address,
+            chain,
+        )
+        == normalized_value
     )
 
     is_receiver = (
-        func.lower(StablecoinTransfer.to_address)
-        == normalized_address
+        normalized_address(
+            StablecoinTransfer.to_address,
+            chain,
+        )
+        == normalized_value
     )
 
     conditions = [
@@ -258,8 +299,8 @@ async def get_address_partners(
         )
         .where(
             *conditions,
-            func.lower(partner_address)
-            != normalized_address,
+            normalized_address(partner_address, chain)
+            != normalized_value,
         )
         .group_by(partner_address)
         .order_by(*order_by)
@@ -277,17 +318,28 @@ async def get_address_activity(
     session: AsyncSession,
     address: str,
     limit: int = 20,
-    chain: str = "base-sepolia",
-    stablecoin: str = "USDC",
+    chain: str = "base",
+    stablecoin: str | None = None,
 ) -> list[dict]:
-    normalized_address = address.lower()
+    normalized_value = normalized_address_value(
+        address,
+        chain,
+    )
 
     is_sender = (
-        func.lower(StablecoinTransfer.from_address) == normalized_address
+        normalized_address(
+            StablecoinTransfer.from_address,
+            chain,
+        )
+        == normalized_value
     )
 
     is_receiver = (
-        func.lower(StablecoinTransfer.to_address) == normalized_address
+        normalized_address(
+            StablecoinTransfer.to_address,
+            chain,
+        )
+        == normalized_value
     )
 
     direction = case(
@@ -310,6 +362,17 @@ async def get_address_activity(
         else_=StablecoinTransfer.from_address,
     ).label("counterparty")
 
+    conditions = [
+        StablecoinTransfer.chain == chain,
+        StablecoinTransfer.event_type == "transfer",
+        or_(is_sender, is_receiver),
+    ]
+
+    if stablecoin:
+        conditions.append(
+            StablecoinTransfer.token_symbol == stablecoin.upper()
+        )
+
     statement = (
         select(
             StablecoinTransfer.transaction_hash,
@@ -322,12 +385,7 @@ async def get_address_activity(
             StablecoinTransfer.token_symbol,
             StablecoinTransfer.chain,
         )
-        .where(
-            StablecoinTransfer.chain == chain,
-            StablecoinTransfer.token_symbol == stablecoin,
-            StablecoinTransfer.event_type == "transfer",
-            or_(is_sender, is_receiver),
-        )
+        .where(*conditions)
         .order_by(
             StablecoinTransfer.timestamp.desc(),
             StablecoinTransfer.log_index.desc(),
